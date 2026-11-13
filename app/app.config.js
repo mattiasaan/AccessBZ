@@ -5,7 +5,9 @@
 // deve permettere il traffico non cifrato; per https:// (Render) resta bloccato.
 module.exports = ({ config }) => {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL || config.extra?.apiUrl;
-  const cleartext = typeof apiUrl === 'string' && apiUrl.startsWith('http://');
+  // Può essere una lista separata da virgole: basta un indirizzo http:// per servire il permesso
+  const cleartext =
+    typeof apiUrl === 'string' && apiUrl.split(',').some((u) => u.trim().startsWith('http://'));
 
   const plugins = (config.plugins || []).map((p) =>
     p === 'expo-build-properties'

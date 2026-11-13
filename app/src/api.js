@@ -1,6 +1,8 @@
 // Comunicazione con il backend FastAPI.
-// L'indirizzo si imposta in app.json -> expo.extra.apiUrl
-// (oppure con la variabile EXPO_PUBLIC_API_URL durante lo sviluppo).
+// L'indirizzo si imposta con EXPO_PUBLIC_API_URL nei profili di eas.json
+// (in sviluppo si usa da solo l'IP del PC). Si possono indicare PIÙ indirizzi separati
+// da virgola, es. "http://192.168.1.17:8000,http://100.74.242.92:8000": l'app usa il primo
+// che risponde e lo ricorda (rete locale quando sei a casa, Tailscale quando sei fuori).
 import Constants from 'expo-constants';
 
 // In sviluppo (Expo Go) il backend gira sullo stesso PC del server Expo:
@@ -13,12 +15,22 @@ function devApiUrl() {
   return host ? `http://${host}:8000` : null;
 }
 
-export const API_URL = (
+const API_URLS = (
   process.env.EXPO_PUBLIC_API_URL ||
   devApiUrl() ||
   Constants.expoConfig?.extra?.apiUrl ||
   'http://localhost:8000'
-).replace(/\/$/, '');
+)
+  .split(',')
+  .map((u) => u.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+let currentUrl = 0; // indice dell'ultimo indirizzo che ha risposto
+export const getApiUrl = () => API_URLS[currentUrl];
+
+// Con più indirizzi, quelli "di riserva" si provano dopo un'attesa breve
+// (un IP locale non raggiungibile fuori casa altrimenti farebbe aspettare 45 s)
+const FALLBACK_TIMEOUT_MS = 6000;
 
 // Se il server non riconosce più il dispositivo (database ricreato), l'app si registra
 // di nuovo in automatico e ripete la richiesta una volta. La funzione la imposta AppContext.
@@ -44,23 +56,37 @@ async function request(path, opts = {}) {
   if (deviceId) headers['X-Device-Id'] = deviceId;
   // Timeout: senza, una richiesta può restare appesa per sempre. 45 s lasciano tempo
   // al server gratuito di Render di "svegliarsi" (circa 30–50 s dopo una pausa).
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let res;
-  try {
-    res = await fetch(`${API_URL}${path}${query}`, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
-  } catch (e) {
-    if (e?.name === 'AbortError') {
+  let lastError;
+  const n = API_URLS.length;
+  for (let attempt = 0; attempt < n; attempt++) {
+    const idx = (currentUrl + attempt) % n;
+    const isLast = attempt === n - 1;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), isLast ? REQUEST_TIMEOUT_MS : FALLBACK_TIMEOUT_MS);
+    try {
+      res = await fetch(`${API_URLS[idx]}${path}${query}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+      currentUrl = idx;
+      break;
+    } catch (e) {
+      lastError = e;
+      // Una scrittura scaduta per timeout potrebbe essere arrivata al server:
+      // non la ripetiamo su un altro indirizzo per non crearla due volte.
+      if (e?.name === 'AbortError' && method !== 'GET') break;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  if (!res) {
+    if (lastError?.name === 'AbortError') {
       throw new Error('Il server non risponde. Riprova tra qualche secondo.');
     }
-    throw new Error(`Server non raggiungibile (${API_URL}). Controlla la connessione.`);
-  } finally {
-    clearTimeout(timer);
+    throw new Error(`Server non raggiungibile (${API_URLS.join(' / ')}). Controlla la connessione.`);
   }
   if (res.status === 401 && deviceId && !retried && path !== '/users' && reauthHandler) {
     await reauthHandler(deviceId);
@@ -70,7 +96,7 @@ async function request(path, opts = {}) {
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const detail = data?.detail;
-    throw new Error(typeof detail === 'string' ? detail : `Errore ${res.status} da ${API_URL}${path}`);
+    throw new Error(typeof detail === 'string' ? detail : `Errore ${res.status} da ${getApiUrl()}${path}`);
   }
   return data;
 }
@@ -83,7 +109,7 @@ export function wakeServer(minIntervalMs = 5 * 60 * 1000) {
   const now = Date.now();
   if (now - lastWake < minIntervalMs) return;
   lastWake = now;
-  fetch(`${API_URL}/`, { method: 'GET' }).catch(() => {});
+  API_URLS.forEach((u) => fetch(`${u}/`, { method: 'GET' }).catch(() => {}));
 }
 
 export const api = {
@@ -94,7 +120,7 @@ export const api = {
   getReport: (id, deviceId) => request(`/reports/${id}`, { deviceId }),
   nearby: (lat, lon, category, deviceId) =>
     request('/reports/nearby', { params: { lat, lon, category }, deviceId }),
-  photoUrl: (id) => `${API_URL}/reports/${id}/photo`,
+  photoUrl: (id) => `${getApiUrl()}/reports/${id}/photo`,
   createReport: (data, deviceId) => request('/reports', { method: 'POST', body: data, deviceId }),
   vote: (id, deviceId, present) =>
     request(`/reports/${id}/vote`, { method: 'POST', body: { present }, deviceId }),

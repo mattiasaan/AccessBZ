@@ -104,8 +104,10 @@ avvia due servizi systemd: `accessbz` (server, riparte da solo) e `accessbz-refr
 Comandi utili: `bash deploy/raspberry-pi/update.sh` (aggiorna e riavvia),
 `journalctl -u accessbz -f` (log), `sudo systemctl restart accessbz`.
 
-Il Pi è raggiungibile solo dalla stessa rete Wi-Fi e senza HTTPS. Per usarlo da fuori casa serve
-un tunnel (ad esempio Tailscale o Cloudflare Tunnel).
+Il profilo `pi` può contenere più indirizzi separati da virgola, ad esempio IP locale e IP
+Tailscale: `http://192.168.1.17:8000,http://100.74.242.92:8000`. L'app usa il primo che risponde
+(a casa la rete locale, fuori casa Tailscale, se l'app Tailscale è attiva sul telefono).
+Il Pi non ha HTTPS: per questo solo l'APK `pi` permette connessioni `http://`.
 
 ## 6. APK Android
 

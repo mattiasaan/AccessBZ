@@ -15,7 +15,7 @@
     "pi": {
       "extends": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://192.168.1.50:8000"
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.17:8000,http://100.74.242.92:8000"
       }
     },
     "production": {

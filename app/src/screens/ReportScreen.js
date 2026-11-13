@@ -101,15 +101,17 @@ export default function ReportScreen({ navigation, route }) {
           return;
         }
       }
-      const created = await api.createReport({
-        device_id: deviceId,
-        category,
-        lat: location.lat,
-        lon: location.lon,
-        description,
-        duration_class: duration,
-        photo_base64: photo?.base64 || null,
-      });
+      const created = await api.createReport(
+        {
+          category,
+          lat: location.lat,
+          lon: location.lon,
+          description,
+          duration_class: duration,
+          photo_base64: photo?.base64 || null,
+        },
+        deviceId,
+      );
       await refreshReports();
       reset();
       navigation.navigate('Mappa');

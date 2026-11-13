@@ -33,11 +33,12 @@ class Report(Base):
     photo: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, deferred=True)
     has_photo: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    last_confirmed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Indici: le query filtrano per data e autore invece di leggere tutta la tabella
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    last_confirmed_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, index=True)
 
-    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
 
     author: Mapped[User] = relationship()
@@ -53,7 +54,7 @@ class Vote(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     report_id: Mapped[int] = mapped_column(ForeignKey("reports.id"), index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     present: Mapped[bool] = mapped_column(Boolean)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 

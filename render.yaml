@@ -7,11 +7,18 @@ services:
     plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT --no-server-header --limit-concurrency 64 --timeout-keep-alive 5
     healthCheckPath: /
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
+      - key: APP_ENV
+        value: production
+      # Render ha un proxy davanti al server: l'IP reale è l'ultimo di X-Forwarded-For
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: ORS_DAILY_BUDGET
+        value: "1500"
       - key: ORS_API_KEY
         sync: false
       - key: DATABASE_URL

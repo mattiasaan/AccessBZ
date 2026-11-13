@@ -1,4 +1,5 @@
 // Funzioni di supporto: distanze, tempi, testi.
+import * as Crypto from 'expo-crypto';
 
 export function distanceM(a, b) {
   const R = 6371000;
@@ -32,9 +33,10 @@ export function formatDistance(m) {
   return `${(m / 1000).toFixed(1)} km`;
 }
 
+// Identificativo segreto del dispositivo: UUID crittograficamente casuale
+// (Math.random non è sicuro: i suoi valori si possono prevedere).
 export function randomId() {
-  const hex = () => Math.floor(Math.random() * 16).toString(16);
-  return 'dev-' + Array.from({ length: 24 }, hex).join('');
+  return 'dev-' + Crypto.randomUUID();
 }
 
 // Proietta un punto su una linea [[lat, lon], ...].

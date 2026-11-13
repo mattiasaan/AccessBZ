@@ -1,6 +1,9 @@
-fastapi>=0.115
-uvicorn[standard]>=0.32
-sqlalchemy>=2.0.36
-pydantic>=2.10
-httpx>=0.28
-psycopg[binary]>=3.2.3
+# Versioni bloccate: un aggiornamento automatico non può introdurre cambiamenti imprevisti
+fastapi==0.162.6
+starlette==1.10.0
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.1.8
+pydantic==2.14.3
+httpx==0.28.1
+pillow==13.0.0
+psycopg[binary]>=3.2.3,<4

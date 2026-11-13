@@ -1,0 +1,218 @@
+// Stato condiviso dell'app: utente, profilo, posizione, ostacoli, percorso attivo,
+// avvisi di prossimità e simulazione del tragitto (per la demo).
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import * as Speech from 'expo-speech';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+
+import { api } from './api';
+import { ALERT_RADIUS_M, CATEGORIES } from './constants';
+import { distanceM, pointAlong, randomId } from './utils';
+
+const AppContext = createContext(null);
+export const useApp = () => useContext(AppContext);
+
+const STORAGE_KEY = 'accessbz:user';
+const SETTINGS_KEY = 'accessbz:settings';
+const REANNOUNCE_AFTER_MS = 10 * 60 * 1000;
+const SIM_SPEED_MPS = 4; // velocità della simulazione (un po' più veloce di una camminata)
+
+export function AppProvider({ children }) {
+  const [ready, setReady] = useState(false);
+  const [user, setUser] = useState(null); // { deviceId, nickname, profile, altDeviceId?, usingAlt? }
+  const [settings, setSettings] = useState({ voice: true });
+  const [reports, setReports] = useState([]);
+  const [reportsError, setReportsError] = useState(null);
+  const [gpsPosition, setGpsPosition] = useState(null);
+  const [simPosition, setSimPosition] = useState(null);
+  const [activeRoute, setActiveRoute] = useState(null);
+  const [alert, setAlert] = useState(null); // { report, distance }
+  const [openReportId, setOpenReportId] = useState(null);
+  const [focusPoint, setFocusPoint] = useState(null); // punto da centrare sulla mappa
+
+  const announced = useRef({});
+  const simTimer = useRef(null);
+
+  const position = simPosition || gpsPosition;
+  const deviceId = user ? (user.usingAlt ? user.altDeviceId : user.deviceId) : null;
+
+  // ---------- caricamento iniziale ----------
+  useEffect(() => {
+    (async () => {
+      try {
+        const [u, s] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY),
+          AsyncStorage.getItem(SETTINGS_KEY),
+        ]);
+        if (u) setUser(JSON.parse(u));
+        if (s) setSettings({ voice: true, ...JSON.parse(s) });
+      } catch {}
+      setReady(true);
+    })();
+  }, []);
+
+  // ---------- GPS ----------
+  useEffect(() => {
+    if (!user) return;
+    let sub;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      sub = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 3, timeInterval: 2000 },
+        (loc) => setGpsPosition({ lat: loc.coords.latitude, lon: loc.coords.longitude }),
+      );
+    })();
+    return () => sub?.remove();
+  }, [user?.deviceId]);
+
+  // ---------- utente ----------
+  const saveUser = useCallback(async (next) => {
+    setUser(next);
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  }, []);
+
+  const register = useCallback(
+    async (nickname, profile) => {
+      const id = user?.deviceId || randomId();
+      await api.registerUser(id, nickname, profile);
+      await saveUser({ ...(user || {}), deviceId: id, nickname, profile });
+    },
+    [user, saveUser],
+  );
+
+  const setProfile = useCallback(
+    async (profile) => {
+      if (!user) return;
+      await api.registerUser(user.deviceId, user.nickname, profile);
+      if (user.altDeviceId) {
+        await api.registerUser(user.altDeviceId, `${user.nickname} (2)`, profile).catch(() => {});
+      }
+      await saveUser({ ...user, profile });
+    },
+    [user, saveUser],
+  );
+
+  // Secondo account sullo stesso telefono: serve per mostrare nella demo
+  // che un'altra persona conferma o chiude una segnalazione.
+  const toggleDemoAccount = useCallback(async () => {
+    if (!user) return;
+    const altDeviceId = user.altDeviceId || `${user.deviceId}-b`;
+    await api.registerUser(altDeviceId, `${user.nickname} (2)`, user.profile);
+    await saveUser({ ...user, altDeviceId, usingAlt: !user.usingAlt });
+  }, [user, saveUser]);
+
+  const updateSettings = useCallback(async (patch) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  // ---------- segnalazioni ----------
+  const refreshReports = useCallback(async () => {
+    if (!user) return;
+    try {
+      const list = await api.listReports(user.profile, deviceId);
+      setReports(list);
+      setReportsError(null);
+    } catch (e) {
+      setReportsError(e.message);
+    }
+  }, [user?.profile, deviceId]);
+
+  useEffect(() => {
+    refreshReports();
+    const t = setInterval(refreshReports, 30000);
+    return () => clearInterval(t);
+  }, [refreshReports]);
+
+  // ---------- avvisi di prossimità ----------
+  useEffect(() => {
+    if (!position || !reports.length) return;
+    const now = Date.now();
+    let nearest = null;
+    for (const r of reports) {
+      const d = distanceM(position, r);
+      if (d > ALERT_RADIUS_M) continue;
+      if (now - (announced.current[r.id] || 0) < REANNOUNCE_AFTER_MS) continue;
+      if (!nearest || d < nearest.distance) nearest = { report: r, distance: d };
+    }
+    if (!nearest) return;
+
+    announced.current[nearest.report.id] = now;
+    setAlert(nearest);
+    if (settings.voice) {
+      const label = CATEGORIES[nearest.report.category]?.label || 'ostacolo';
+      const meters = Math.max(5, Math.round(nearest.distance / 5) * 5);
+      let text = `Attenzione. ${label} a circa ${meters} metri.`;
+      if (nearest.report.confirmations > 0) {
+        text += ` Confermato da ${nearest.report.confirmations} ${nearest.report.confirmations === 1 ? 'persona' : 'persone'}.`;
+      }
+      Speech.stop();
+      Speech.speak(text, { language: 'it-IT', rate: 0.95 });
+    }
+  }, [position, reports, settings.voice]);
+
+  const dismissAlert = useCallback(() => setAlert(null), []);
+
+  // ---------- simulazione del tragitto ----------
+  const stopSimulation = useCallback(() => {
+    clearInterval(simTimer.current);
+    simTimer.current = null;
+    setSimPosition(null);
+  }, []);
+
+  const startSimulation = useCallback(
+    (geometry) => {
+      stopSimulation();
+      announced.current = {};
+      let travelled = 0;
+      const first = pointAlong(geometry, 0);
+      setSimPosition({ lat: first.lat, lon: first.lon });
+      simTimer.current = setInterval(() => {
+        travelled += SIM_SPEED_MPS;
+        const p = pointAlong(geometry, travelled);
+        setSimPosition({ lat: p.lat, lon: p.lon });
+        if (p.done) {
+          clearInterval(simTimer.current);
+          simTimer.current = null;
+          if (settings.voice) Speech.speak('Sei arrivato a destinazione.', { language: 'it-IT' });
+        }
+      }, 1000);
+    },
+    [stopSimulation, settings.voice],
+  );
+
+  useEffect(() => () => clearInterval(simTimer.current), []);
+
+  const value = {
+    ready,
+    user,
+    deviceId,
+    register,
+    setProfile,
+    toggleDemoAccount,
+    settings,
+    updateSettings,
+    reports,
+    reportsError,
+    refreshReports,
+    position,
+    gpsPosition,
+    simulating: !!simPosition,
+    startSimulation,
+    stopSimulation,
+    activeRoute,
+    setActiveRoute,
+    alert,
+    dismissAlert,
+    openReportId,
+    openReport: setOpenReportId,
+    focusPoint,
+    setFocusPoint,
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}

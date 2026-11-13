@@ -2,12 +2,12 @@
 // avvisi di prossimità e simulazione del tragitto.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
-import * as Speech from 'expo-speech';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { AppState } from 'react-native';
 
 import { api, setReauthHandler, wakeServer } from './api';
+import { initSpeech, speak } from './speech';
 import { ALERT_RADIUS_M, CATEGORIES } from './constants';
 import { distanceM, locateOnRoute, pointAlong, randomId } from './utils';
 
@@ -46,6 +46,7 @@ export function AppProvider({ children }) {
   // Appena l'app si apre (anche prima della registrazione) e ogni volta che torna in primo piano
   useEffect(() => {
     wakeServer(0);
+    initSpeech(); // prepara il motore vocale: il primo avviso parte senza ritardo
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') wakeServer();
     });
@@ -219,8 +220,7 @@ export function AppProvider({ children }) {
       if (nearest.report.confirmations > 0) {
         text += ` Confermato da ${nearest.report.confirmations} ${nearest.report.confirmations === 1 ? 'persona' : 'persone'}.`;
       }
-      Speech.stop();
-      Speech.speak(text, { language: 'it-IT', rate: 0.95 });
+      speak(text);
     }
   }, [position, reports, onRoute, settings.voice]);
 
@@ -247,7 +247,7 @@ export function AppProvider({ children }) {
         if (p.done) {
           clearInterval(simTimer.current);
           simTimer.current = null;
-          if (settings.voice) Speech.speak('Sei arrivato a destinazione.', { language: 'it-IT' });
+          if (settings.voice) speak('Sei arrivato a destinazione.');
         }
       }, 1000);
     },

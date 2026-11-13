@@ -47,7 +47,17 @@ export const type = {
   },
 };
 
-export const radius = { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 };
+// Colore tenue OPACO (mescolato con il bianco). Da usare al posto di colori semitrasparenti
+// sugli elementi con ombra: su Android l'ombra (elevation) si vede attraverso gli sfondi
+// trasparenti e crea zone scure.
+export function softTint(hex, amount = 0.08) {
+  const n = parseInt(hex.slice(1, 7), 16);
+  const mix = (c) => Math.round(255 - (255 - c) * amount);
+  const r = mix((n >> 16) & 255), g = mix((n >> 8) & 255), b = mix(n & 255);
+  return `#${((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1)}`;
+}
+
+export const radius ={ sm: 10, md: 14, lg: 20, xl: 28, pill: 999 };
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 };
 
 export const shadow = {

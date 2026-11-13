@@ -9,7 +9,7 @@ import { api } from '../api';
 import { useApp } from '../AppContext';
 import { Button, FadeIn, Icon, PressableScale, SectionHeader, T } from '../components/ui';
 import { CATEGORIES, DURATIONS } from '../constants';
-import { colors, fonts, radius, shadow, space } from '../theme';
+import { colors, fonts, radius, shadow, softTint, space } from '../theme';
 import { timeAgo } from '../utils';
 
 // Durata suggerita in base alla categoria (l'utente può cambiarla)
@@ -147,7 +147,7 @@ export default function ReportScreen({ navigation, route }) {
                 <FadeIn key={key} delay={i * 25} style={styles.catWrap}>
                   <PressableScale
                     onPress={() => setCategory(key)}
-                    style={[styles.cat, sel && { borderColor: c.tint, backgroundColor: c.tint + '12' }]}
+                    style={[styles.cat, sel && { borderColor: c.tint, backgroundColor: softTint(c.tint, 0.08) }]}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: sel }}
                     accessibilityLabel={c.label}

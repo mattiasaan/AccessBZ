@@ -1,6 +1,5 @@
 // Profilo: profilo di mobilità, voce, impatto personale e cittadino, privacy.
 import { useFocusEffect } from '@react-navigation/native';
-import * as Speech from 'expo-speech';
 import { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +9,7 @@ import { useApp } from '../AppContext';
 import { Button, Card, Divider, FadeIn, Icon, IconBadge, OptionCard, SectionHeader, T } from '../components/ui';
 import { CATEGORIES, PROFILES, SHOW_ACCOUNT_RESET } from '../constants';
 import { colors, radius, shadow, space } from '../theme';
+import { speak } from '../speech';
 import { formatMinutes } from '../utils';
 
 export default function ProfileScreen() {
@@ -102,7 +102,7 @@ export default function ProfileScreen() {
             title="Prova la voce"
             icon="play-circle-outline"
             variant="ghost"
-            onPress={() => Speech.speak('Attenzione. Veicolo sul marciapiede a circa 20 metri.', { language: 'it-IT' })}
+            onPress={() => speak('Attenzione. Veicolo sul marciapiede a circa 20 metri.')}
           />
         </Card>
 

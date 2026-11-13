@@ -60,6 +60,25 @@ def test_author_resolves_and_delete():
     assert client.delete(f"/reports/{rid}", params={"device_id": "device-dddd"}).status_code == 204
 
 
+def test_nearby_and_place_history():
+    make_user("device-eeee")
+    first = client.post("/reports", json={"device_id": "device-eeee", "category": "tables",
+                                          "lat": 46.4950, "lon": 11.3600}).json()
+    # stessa categoria a ~10 m: è un possibile duplicato
+    near = client.get("/reports/nearby", params={"lat": 46.49509, "lon": 11.3600, "category": "tables"}).json()
+    assert [n["id"] for n in near] == [first["id"]] and 5 <= near[0]["distance_m"] <= 15
+    # categoria diversa o troppo lontano: nessun duplicato
+    assert client.get("/reports/nearby", params={"lat": 46.49509, "lon": 11.3600, "category": "snow"}).json() == []
+    assert client.get("/reports/nearby", params={"lat": 46.4970, "lon": 11.3600, "category": "tables"}).json() == []
+
+    second = client.post("/reports", json={"device_id": "device-eeee", "category": "vehicle",
+                                           "lat": 46.49520, "lon": 11.3600}).json()
+    client.post(f"/reports/{second['id']}/vote", json={"device_id": "device-eeee", "present": False})
+    place = client.get(f"/reports/{first['id']}").json()["place"]
+    assert place["count"] == 2 and place["resolved"] == 1
+    assert set(place["by_category"]) == {"tables", "vehicle"} and len(place["created_at"]) == 2
+
+
 class FakeReport:
     def __init__(self, dur, created_ago, confirmed_ago, votes=()):
         now = lifecycle.utcnow()

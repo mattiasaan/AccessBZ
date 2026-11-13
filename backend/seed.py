@@ -40,6 +40,17 @@ RESOLVED = [
 ]
 
 
+# Storico degli ultimi 30 giorni negli stessi punti degli ostacoli attivi:
+# alimenta la "memoria del luogo" (quante volte, quanto durano, a che ora).
+# (categoria, lat, lon, [(giorni fa, ora UTC, durata in minuti), ...])
+HISTORY = [
+    ("vehicle", 46.49965, 11.35590, [(2, 7, 35), (4, 8, 50), (6, 7, 25), (9, 16, 40), (11, 7, 55), (15, 8, 30), (21, 17, 45)]),
+    ("tables", 46.50015, 11.35190, [(1, 10, 240), (3, 11, 300), (8, 10, 280), (13, 17, 200)]),
+    ("works", 46.49830, 11.35460, [(18, 6, 60 * 9), (24, 6, 60 * 8)]),
+    ("elevator", 46.49650, 11.35770, [(10, 9, 60 * 20), (27, 14, 60 * 31)]),
+]
+
+
 def seed(reset: bool = False):
     if reset:
         Base.metadata.drop_all(bind=engine)
@@ -83,8 +94,22 @@ def seed(reset: bool = False):
             r.votes.append(Vote(user_id=solver.id, present=False, created_at=r.resolved_at))
             db.add(r)
 
+        n_history = 0
+        for k, (cat, lat, lon, events) in enumerate(HISTORY):
+            for j, (days, hour, lasted) in enumerate(events):
+                created = (now - timedelta(days=days)).replace(hour=hour, minute=(j * 13) % 60, second=0, microsecond=0)
+                # piccolo spostamento (pochi metri): stesso posto, segnalato da persone diverse
+                jitter = ((j % 3) - 1) * 0.00004
+                r = Report(category=cat, lat=lat + jitter, lon=lon - jitter, description="",
+                           duration_class="unknown", created_at=created, last_confirmed_at=created,
+                           created_by=users[(k + j) % len(users)].id,
+                           resolved_at=created + timedelta(minutes=lasted), is_demo=True)
+                r.votes.append(Vote(user_id=users[(k + j + 1) % len(users)].id, present=False, created_at=r.resolved_at))
+                db.add(r)
+                n_history += 1
+
         db.commit()
-        print(f"Creati {len(ACTIVE)} ostacoli attivi e {len(RESOLVED)} risolti (dati demo).")
+        print(f"Creati {len(ACTIVE)} ostacoli attivi, {len(RESOLVED)} risolti e {n_history} di storico (dati demo).")
     finally:
         db.close()
 

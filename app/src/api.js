@@ -53,6 +53,8 @@ export const api = {
   listReports: (profile, deviceId, scope = 'active') =>
     request('/reports', { params: { scope, profile, device_id: deviceId } }),
   getReport: (id, deviceId) => request(`/reports/${id}`, { params: { device_id: deviceId } }),
+  nearby: (lat, lon, category, deviceId) =>
+    request('/reports/nearby', { params: { lat, lon, category, device_id: deviceId } }),
   photoUrl: (id) => `${API_URL}/reports/${id}/photo`,
   createReport: (data) => request('/reports', { method: 'POST', body: data }),
   vote: (id, deviceId, present) =>

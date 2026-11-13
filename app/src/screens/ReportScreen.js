@@ -10,6 +10,7 @@ import { useApp } from '../AppContext';
 import { Button, FadeIn, Icon, PressableScale, SectionHeader, T } from '../components/ui';
 import { CATEGORIES, DURATIONS } from '../constants';
 import { colors, fonts, radius, shadow, space } from '../theme';
+import { timeAgo } from '../utils';
 
 // Durata suggerita in base alla categoria (l'utente può cambiarla)
 const DEFAULT_DURATION = {
@@ -18,7 +19,7 @@ const DEFAULT_DURATION = {
 };
 
 export default function ReportScreen({ navigation, route }) {
-  const { position, deviceId, refreshReports, openReport } = useApp();
+  const { position, deviceId, refreshReports, openReport, setFocusPoint } = useApp();
   const pick = route.params?.pick;
 
   const [category, setCategory] = useState(null);
@@ -64,9 +65,42 @@ export default function ReportScreen({ navigation, route }) {
     navigation.setParams({ pick: undefined });
   };
 
+  // Anti-duplicati: se lì vicino c'è già lo stesso ostacolo, meglio confermarlo che crearne un altro
+  const askAboutDuplicate = (dup) =>
+    new Promise((resolve) => {
+      const cat = CATEGORIES[dup.category];
+      Alert.alert(
+        'Forse è già stato segnalato',
+        `${cat.label} a ${dup.distance_m} m da qui, segnalato ${timeAgo(dup.created_at)}` +
+          (dup.confirmations ? ` e confermato da ${dup.confirmations} ${dup.confirmations === 1 ? 'persona' : 'persone'}` : '') +
+          '.\n\nÈ lo stesso ostacolo? Confermarlo aiuta la community più di una nuova segnalazione.',
+        [
+          { text: 'È lo stesso: confermalo', onPress: () => resolve('confirm') },
+          { text: 'È un altro: pubblica', onPress: () => resolve('publish') },
+          { text: 'Annulla', style: 'cancel', onPress: () => resolve('cancel') },
+        ],
+        { cancelable: true, onDismiss: () => resolve('cancel') },
+      );
+    });
+
   const publish = async () => {
     setSaving(true);
     try {
+      const dups = await api.nearby(location.lat, location.lon, category, deviceId).catch(() => []);
+      const dup = dups[0]; // il più vicino
+      if (dup) {
+        const choice = await askAboutDuplicate(dup);
+        if (choice === 'cancel') return;
+        if (choice === 'confirm') {
+          await api.vote(dup.id, deviceId, true);
+          await refreshReports();
+          reset();
+          navigation.navigate('Mappa');
+          setFocusPoint({ lat: dup.lat, lon: dup.lon, zoom: 18, t: Date.now() });
+          openReport(dup.id);
+          return;
+        }
+      }
       const created = await api.createReport({
         device_id: deviceId,
         category,
@@ -79,6 +113,7 @@ export default function ReportScreen({ navigation, route }) {
       await refreshReports();
       reset();
       navigation.navigate('Mappa');
+      setFocusPoint({ lat: created.lat, lon: created.lon, zoom: 18, t: Date.now() });
       openReport(created.id);
     } catch (e) {
       Alert.alert('Pubblicazione non riuscita', e.message);

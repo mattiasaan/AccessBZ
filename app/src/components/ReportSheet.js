@@ -8,6 +8,7 @@ import { ACTIVE_STATUSES, CATEGORIES, DURATIONS } from '../constants';
 import { colors, radius, space } from '../theme';
 import { distanceM, formatDistance, formatMinutes, timeAgo } from '../utils';
 import BottomSheet from './BottomSheet';
+import PlaceMemory from './PlaceMemory';
 import { Button, FadeIn, Icon, IconBadge, StatusPill, T } from './ui';
 
 const TIMELINE = {
@@ -166,7 +167,12 @@ export default function ReportSheet() {
             )}
           </FadeIn>
 
-          <FadeIn delay={180}>
+          <FadeIn delay={170}>
+            <T variant="overline" style={{ marginTop: space.xl, marginBottom: space.md }}>Memoria del luogo</T>
+            <PlaceMemory place={report.place} />
+          </FadeIn>
+
+          <FadeIn delay={200}>
             <T variant="overline" style={{ marginTop: space.xl, marginBottom: space.md }}>Linea del tempo</T>
             {report.timeline.map((t, i) => {
               const m = TIMELINE[t.type];

@@ -3,11 +3,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from './api';
 import { ALERT_RADIUS_M, CATEGORIES } from './constants';
-import { distanceM, pointAlong, randomId } from './utils';
+import { distanceM, locateOnRoute, pointAlong, randomId } from './utils';
 
 const AppContext = createContext(null);
 export const useApp = () => useContext(AppContext);
@@ -15,6 +15,10 @@ export const useApp = () => useContext(AppContext);
 const STORAGE_KEY = 'accessbz:user';
 const SETTINGS_KEY = 'accessbz:settings';
 const REANNOUNCE_AFTER_MS = 10 * 60 * 1000;
+const ROUTE_THRESHOLD_M = 20;  // un ostacolo è "sul percorso" se dista meno di così (come nel backend)
+const OFF_ROUTE_M = 35;        // oltre questa distanza dal percorso consideriamo l'utente fuori percorso
+const LOOKAHEAD_M = 60;        // avvisa per gli ostacoli entro 60 m davanti
+const BEHIND_TOLERANCE_M = 5;  // margine per l'imprecisione del GPS
 const SIM_SPEED_MPS = 4; // velocità della simulazione (un po' più veloce di una camminata)
 
 export function AppProvider({ children }) {
@@ -129,15 +133,41 @@ export function AppProvider({ children }) {
   }, [refreshReports]);
 
   // ---------- avvisi di prossimità ----------
+  // Durante la navigazione: ostacoli proiettati sul percorso (calcolati una volta sola)
+  const onRoute = useMemo(() => {
+    if (!activeRoute) return null;
+    return reports
+      .map((r) => ({ report: r, ...locateOnRoute(r, activeRoute.geometry) }))
+      .filter((p) => p.dist <= ROUTE_THRESHOLD_M);
+  }, [activeRoute, reports]);
+
   useEffect(() => {
     if (!position || !reports.length) return;
     const now = Date.now();
+    const fresh = (r) => now - (announced.current[r.id] || 0) >= REANNOUNCE_AFTER_MS;
     let nearest = null;
-    for (const r of reports) {
-      const d = distanceM(position, r);
-      if (d > ALERT_RADIUS_M) continue;
-      if (now - (announced.current[r.id] || 0) < REANNOUNCE_AFTER_MS) continue;
-      if (!nearest || d < nearest.distance) nearest = { report: r, distance: d };
+
+    // 1) In navigazione e sul percorso: solo gli ostacoli DAVANTI, in ordine di arrivo
+    let directional = false;
+    if (onRoute) {
+      const me = locateOnRoute(position, activeRoute.geometry);
+      if (me.dist <= OFF_ROUTE_M) {
+        directional = true;
+        for (const p of onRoute) {
+          const ahead = p.along - me.along;
+          if (ahead < -BEHIND_TOLERANCE_M || ahead > LOOKAHEAD_M || !fresh(p.report)) continue;
+          if (!nearest || ahead < nearest.distance) nearest = { report: p.report, distance: Math.max(0, ahead), ahead: true };
+        }
+      }
+    }
+
+    // 2) Altrimenti (o fuori dal percorso): tutti gli ostacoli nel raggio di 40 m
+    if (!directional) {
+      for (const r of reports) {
+        const d = distanceM(position, r);
+        if (d > ALERT_RADIUS_M || !fresh(r)) continue;
+        if (!nearest || d < nearest.distance) nearest = { report: r, distance: d };
+      }
     }
     if (!nearest) return;
 
@@ -146,14 +176,18 @@ export function AppProvider({ children }) {
     if (settings.voice) {
       const label = CATEGORIES[nearest.report.category]?.label || 'ostacolo';
       const meters = Math.max(5, Math.round(nearest.distance / 5) * 5);
-      let text = `Attenzione. ${label} a circa ${meters} metri.`;
+      let text = nearest.ahead
+        ? nearest.distance < 8
+          ? `Attenzione. ${label}, adesso.`
+          : `Attenzione. Tra ${meters} metri, ${label.toLowerCase()}.`
+        : `Attenzione. ${label} a circa ${meters} metri.`;
       if (nearest.report.confirmations > 0) {
         text += ` Confermato da ${nearest.report.confirmations} ${nearest.report.confirmations === 1 ? 'persona' : 'persone'}.`;
       }
       Speech.stop();
       Speech.speak(text, { language: 'it-IT', rate: 0.95 });
     }
-  }, [position, reports, settings.voice]);
+  }, [position, reports, onRoute, settings.voice]);
 
   const dismissAlert = useCallback(() => setAlert(null), []);
 

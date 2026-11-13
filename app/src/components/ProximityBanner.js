@@ -51,7 +51,9 @@ export default function ProximityBanner() {
           <Icon name={cat?.icon} size={26} color={colors.text} />
         </View>
         <View style={{ flex: 1 }}>
-          <T variant="overline" style={{ color: 'rgba(15,23,42,0.7)' }}>Attenzione · {meters} m</T>
+          <T variant="overline" style={{ color: 'rgba(15,23,42,0.7)' }}>
+            {shown.ahead ? (meters < 8 ? 'Attenzione · adesso' : `Sul percorso · tra ${meters} m`) : `Attenzione · ${meters} m`}
+          </T>
           <T variant="heading">{cat?.label}</T>
           <T variant="caption" style={{ color: 'rgba(15,23,42,0.75)' }}>Tocca per confermare se c’è ancora</T>
         </View>

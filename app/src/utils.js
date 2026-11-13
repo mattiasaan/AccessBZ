@@ -37,6 +37,29 @@ export function randomId() {
   return 'dev-' + Array.from({ length: 24 }, hex).join('');
 }
 
+// Proietta un punto su una linea [[lat, lon], ...].
+// Ritorna { dist: distanza dalla linea in m, along: metri dalla partenza lungo la linea }.
+// Stessa logica di backend/app/routing.py (approssimazione piana, ottima in città).
+export function locateOnRoute(point, line) {
+  const kx = 111320 * Math.cos((point.lat * Math.PI) / 180);
+  const ky = 110540;
+  const px = point.lon * kx;
+  const py = point.lat * ky;
+  let best = { dist: Infinity, along: 0 };
+  let travelled = 0;
+  for (let i = 0; i < line.length - 1; i++) {
+    const ax = line[i][1] * kx, ay = line[i][0] * ky;
+    const bx = line[i + 1][1] * kx, by = line[i + 1][0] * ky;
+    const dx = bx - ax, dy = by - ay;
+    const len = Math.hypot(dx, dy);
+    const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (len * len)));
+    const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    if (d < best.dist) best = { dist: d, along: travelled + t * len };
+    travelled += len;
+  }
+  return best;
+}
+
 // Punto a una certa distanza lungo una linea [[lat, lon], ...] (per la simulazione)
 export function pointAlong(line, meters) {
   let left = meters;

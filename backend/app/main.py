@@ -111,6 +111,32 @@ def load_reports(db: Session):
     ).all()
 
 
+PLACE_RADIUS_M = 50
+PLACE_DAYS = 30
+
+
+def place_history(db: Session, r: Report, now=None) -> dict:
+    """"Memoria del luogo": cosa è successo entro 50 m da questo punto negli ultimi 30 giorni."""
+    now = now or utcnow()
+    since = now - timedelta(days=PLACE_DAYS)
+    nearby = [
+        o for o in load_reports(db)
+        if o.created_at >= since and routing.haversine_m((r.lat, r.lon), (o.lat, o.lon)) <= PLACE_RADIUS_M
+    ]
+    closed = [o for o in nearby if o.resolved_at]
+    avg = sum((active_duration(o, now) for o in closed), timedelta()) / len(closed) if closed else None
+    return {
+        "radius_m": PLACE_RADIUS_M,
+        "days": PLACE_DAYS,
+        "count": len(nearby),
+        "resolved": len(closed),
+        "avg_resolution_minutes": int(avg.total_seconds() // 60) if avg else None,
+        "by_category": dict(Counter(o.category for o in nearby).most_common()),
+        # Orari di creazione (UTC): l'app li converte nell'ora locale per la fascia oraria
+        "created_at": [iso(o.created_at) for o in nearby],
+    }
+
+
 # ---------------------------------------------------------------- endpoint
 
 @app.get("/")
@@ -160,6 +186,28 @@ def list_reports(
     return out
 
 
+@app.get("/reports/nearby")
+def nearby_reports(
+    lat: float,
+    lon: float,
+    category: str,
+    radius: float = Query(25, gt=0, le=200),
+    device_id: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """Segnalazioni ATTIVE della stessa categoria vicine a un punto: servono a evitare i duplicati."""
+    viewer = db.scalar(select(User).where(User.device_id == device_id)) if device_id else None
+    now = utcnow()
+    out = []
+    for r in load_reports(db):
+        if r.category != category or compute_status(r, now) not in ACTIVE_STATUSES:
+            continue
+        d = routing.haversine_m((lat, lon), (r.lat, r.lon))
+        if d <= radius:
+            out.append({**report_to_dict(r, now, viewer.id if viewer else None), "distance_m": round(d)})
+    return sorted(out, key=lambda x: x["distance_m"])
+
+
 @app.get("/reports/{report_id}")
 def get_report(report_id: int, device_id: str | None = None, db: Session = Depends(get_db)):
     r = db.get(Report, report_id)
@@ -179,6 +227,7 @@ def get_report(report_id: int, device_id: str | None = None, db: Session = Depen
     if r.resolved_at:
         timeline.append({"type": "resolved", "at": iso(r.resolved_at), "by": None})
     d["timeline"] = timeline
+    d["place"] = place_history(db, r)
     return d
 
 

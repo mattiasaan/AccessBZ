@@ -3,20 +3,22 @@
 > La città è la stessa. Il percorso non lo è.
 
 Mappa dinamica degli ostacoli urbani di Bolzano: segnalazioni con foto e durata stimata,
-conferme della community, ciclo di vita temporale dell'ostacolo, percorsi A/B che evitano
-gli ostacoli e avvisi vocali di prossimità. Idea completa in [AccessBZ.md](AccessBZ.md).
+conferme della community, ciclo di vita temporale dell'ostacolo, memoria del luogo,
+percorsi A/B che evitano gli ostacoli e avvisi vocali nella direzione di marcia.
+Idea completa in [AccessBZ.md](AccessBZ.md).
 
 | Cartella | Contenuto |
 |---|---|
-| `backend/` | API FastAPI + SQLAlchemy (SQLite in locale, PostgreSQL su Render) |
+| `backend/` | API FastAPI + SQLAlchemy (SQLite in locale e su Raspberry Pi, PostgreSQL su Render) |
 | `app/` | App Expo / React Native (mappa Leaflet + OpenStreetMap in WebView) |
 | `render.yaml` | Deploy automatico del backend su Render |
+| `deploy/raspberry-pi/` | Installazione del backend su Raspberry Pi con systemd |
 
 ## 1. Chiave OpenRouteService (percorsi)
 
-1. Registrati gratis su <https://openrouteservice.org/dev/#/signup>.
-2. Copia la chiave API (piano gratuito).
-3. Impostala nella variabile `ORS_API_KEY` (in locale e su Render).
+1. Registrati gratis su <https://openrouteservice.org/dev/#/signup> e crea un token (piano Standard).
+2. Copia `backend/.env.example` in `backend/.env` e incolla la chiave in `ORS_API_KEY`.
+   Su Render la chiave si imposta nel pannello del servizio, non nel file.
 
 Senza la chiave funziona tutto tranne la schermata **Percorso**.
 
@@ -27,45 +29,100 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python seed.py --reset          # dati DEMO nel centro di Bolzano
-set ORS_API_KEY=la_tua_chiave   # PowerShell: $env:ORS_API_KEY="la_tua_chiave"
+python populate.py --reset
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Documentazione interattiva delle API: <http://localhost:8000/docs>. Test: `python -m pytest tests`.
+Documentazione interattiva (solo in sviluppo): <http://localhost:8000/docs>. Test: `python -m pytest tests`.
+
+### Dati di esempio: `populate.py`
+
+Genera segnalazioni realistiche in **luoghi reali di Bolzano** presi da OpenStreetMap
+([backend/data](backend/data/README.md)):
+
+| Categoria | Dove | Quando |
+|---|---|---|
+| Veicolo sul marciapiede | attraversamenti, scuole, farmacie, negozi | picchi alle 7–8, 12–13, 17–18; meno nel weekend |
+| Tavolini | bar, ristoranti, gelaterie | pranzo e sera, di più nel weekend |
+| Bici e monopattini | rastrelliere, attraversamenti | mattina e pomeriggio |
+| Lavori, chiusure | attraversamenti, percorsi pedonali | inizio alle 7–8 nei giorni feriali, durano giorni |
+| Cantieri | aree di cantiere mappate in OSM | durano settimane |
+| Ascensore guasto | i veri ascensori pubblici della città | durata incerta |
+| Neve e ghiaccio (`--winter`) | ponti, scale, percorsi pedonali | mattina presto, solo nei giorni di neve |
+
+Ogni categoria ha dei "punti caldi" che si ripetono (così la memoria del luogo ha senso), durate
+realistiche, conferme e chiusure da parte di utenti diversi, e qualche segnalazione che scade.
+
+```bash
+python populate.py --reset                 # rigenera tutto (default: 45 giorni, scala 3)
+python populate.py --refresh-if-stale 12   # rigenera solo i dati generati se hanno più di 12 ore
+python populate.py --scale 4 --winter      # più segnalazioni, con neve e ghiaccio
+python populate.py --refresh-osm           # riscarica i luoghi da OpenStreetMap
+```
+
+`--refresh-if-stale` non tocca mai le segnalazioni degli utenti veri: su Render e sul Pi gira
+in automatico, così la mappa resta "viva" anche dopo giorni.
 
 ## 3. App in sviluppo (Expo Go su iPhone o Android)
 
-Il telefono deve essere sulla stessa rete Wi-Fi del PC. Trova l'IP del PC con `ipconfig`.
+Telefono e PC sulla stessa rete Wi-Fi. In sviluppo l'app usa da sola l'IP del PC (porta 8000).
 
 ```bash
 cd app
-set EXPO_PUBLIC_API_URL=http://192.168.1.XX:8000   # PowerShell: $env:EXPO_PUBLIC_API_URL="http://192.168.1.XX:8000"
 npx expo start
 ```
 
-Inquadra il QR code con Expo Go.
+Se qualcosa sembra "vecchio" dopo un cambio di configurazione: `npx expo start -c`.
 
-## 4. Backend online su Render
+## 4. Backend su Render (online, HTTPS)
 
-1. Carica la cartella del progetto su un repository GitHub.
-2. Su Render: **New → Blueprint** → scegli il repository (usa `render.yaml`).
-3. Imposta `ORS_API_KEY` nelle variabili d'ambiente del servizio `accessbz-api`.
-4. Copia l'URL del servizio (es. `https://accessbz-api.onrender.com`) in `app/app.json` → `expo.extra.apiUrl`.
+1. Su <https://dashboard.render.com>: **New → Blueprint** → repository `AccessBZ` (usa `render.yaml`).
+2. Quando lo chiede, inserisci `ORS_API_KEY`.
+3. Al primo avvio il database viene popolato da solo.
+4. Se l'URL del servizio non è `https://accessbz-api.onrender.com`, aggiornalo in `app/eas.json`
+   (profili `preview` e `production`) e in `app/app.json` → `extra.apiUrl`.
 
-Nota: sul piano gratuito il server si "addormenta" dopo 15 minuti senza richieste e il primo
-avvio richiede circa 1 minuto. Aprilo dal browser prima di una demo. Il database gratuito di Render
-scade dopo 30 giorni.
+Piano gratuito: il server si "addormenta" dopo 15 minuti senza richieste e la prima risposta
+arriva dopo circa 30–50 secondi (l'app aspetta fino a 45 s). Aprilo dal browser prima di una demo.
+Il database gratuito di Render scade dopo 30 giorni.
 
-## 5. APK per la giuria
+## 5. Backend su Raspberry Pi (rete locale)
+
+Sul Pi (Raspberry Pi OS, meglio 64 bit), in una cartella senza spazi nel percorso:
+
+```bash
+git clone https://github.com/mattiasaan/AccessBZ.git
+cd AccessBZ
+bash deploy/raspberry-pi/install.sh
+```
+
+Lo script installa tutto, chiede la chiave ORS, crea il database SQLite con i dati di esempio e
+avvia due servizi systemd: `accessbz` (server, riparte da solo) e `accessbz-refresh.timer`
+(ogni ora rigenera i dati di esempio se sono vecchi). Alla fine stampa l'indirizzo, ad esempio
+`http://192.168.1.50:8000`: mettilo nel profilo `pi` di `app/eas.json`.
+
+Comandi utili: `bash deploy/raspberry-pi/update.sh` (aggiorna e riavvia),
+`journalctl -u accessbz -f` (log), `sudo systemctl restart accessbz`.
+
+Il Pi è raggiungibile solo dalla stessa rete Wi-Fi e senza HTTPS. Per usarlo da fuori casa serve
+un tunnel (ad esempio Tailscale o Cloudflare Tunnel).
+
+## 6. APK Android
 
 ```bash
 cd app
 npx eas-cli@latest login
-npx eas-cli@latest build -p android --profile preview
+npx eas-cli@latest init                                   # solo la prima volta
+npx eas-cli@latest build -p android --profile preview     # APK collegato a Render
+npx eas-cli@latest build -p android --profile pi          # APK collegato al Raspberry Pi
 ```
 
-Alla fine EAS fornisce il link da cui scaricare l'APK: è il link da mettere nel modulo del concorso.
+Alla fine EAS fornisce il link per scaricare l'APK: è il link da mettere nel modulo del concorso
+(profilo `preview`). L'APK `pi` permette connessioni `http://` solo perché il Pi non ha HTTPS.
+
+Prima della versione finale: in `app/src/constants.js` metti `SHOW_ACCOUNT_RESET = false`.
+
+Le icone si rigenerano con `..\backend\.venv\Scripts\python scripts\make_icons.py` (dalla cartella `app`).
 
 ## Ciclo di vita di un ostacolo
 
@@ -79,8 +136,15 @@ Alla fine EAS fornisce il link da cui scaricare l'APK: è il link da mettere nel
 
 La logica è in [backend/app/lifecycle.py](backend/app/lifecycle.py): nessuna AI, solo timestamp, durate e conferme.
 
+## Sicurezza
+
+Rate limiting per IP e per dispositivo, limite di 2 MB letto prima di caricare la richiesta,
+foto verificate e ricodificate senza EXIF/GPS, ID del dispositivo solo nell'header `X-Device-Id`,
+testi ripuliti, area di servizio limitata a Bolzano, header di sicurezza, CORS chiuso in produzione,
+`/docs` disattivato in produzione. Dettagli in [backend/app/security.py](backend/app/security.py).
+
 ## Dati e servizi usati
 
-- Mappa: © OpenStreetMap contributors (Leaflet)
+- Mappa e luoghi per i dati di esempio: © OpenStreetMap contributors (ODbL)
 - Percorsi e ricerca indirizzi: openrouteservice.org (profili `wheelchair`, `foot-walking`, `cycling-regular`). Gli ostacoli attivi vengono passati come `avoid_polygons` per calcolare il percorso alternativo.
-- Le segnalazioni demo create da `seed.py` sono **simulate** e marcate come "Dato dimostrativo".
+- Icone: Material Design Icons

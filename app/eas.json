@@ -5,10 +5,28 @@
   "build": {
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://accessbz-api.onrender.com"
       }
     },
-    "production": {}
+    "pi": {
+      "extends": "preview",
+      "channel": "pi",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://192.168.1.50:8000"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://accessbz-api.onrender.com"
+      }
+    }
   }
 }

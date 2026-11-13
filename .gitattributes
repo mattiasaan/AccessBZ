@@ -1,0 +1,6 @@
+# Script e unità systemd per Raspberry Pi: sempre con fine riga Unix,
+# anche se il repository viene modificato da Windows
+*.sh text eol=lf
+*.service text eol=lf
+*.timer text eol=lf
+render.yaml text eol=lf

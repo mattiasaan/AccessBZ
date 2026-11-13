@@ -5,9 +5,15 @@ services:
     name: accessbz-api
     runtime: python
     plan: free
+    region: frankfurt
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT --no-server-header --limit-concurrency 64 --timeout-keep-alive 5
+    buildCommand: pip install -r requirements.txt "psycopg[binary]>=3.2.3,<4"
+    # Il popolamento gira in background: rigenera i dati di esempio solo se hanno più di 12 ore
+    # (le segnalazioni degli utenti veri non vengono toccate) e non rallenta l'avvio del server.
+    startCommand: >-
+      python populate.py --refresh-if-stale 12 &
+      exec uvicorn app.main:app --host 0.0.0.0 --port $PORT
+      --no-server-header --limit-concurrency 64 --timeout-keep-alive 5
     healthCheckPath: /
     envVars:
       - key: PYTHON_VERSION
@@ -29,3 +35,4 @@ services:
 databases:
   - name: accessbz-db
     plan: free
+    region: frankfurt

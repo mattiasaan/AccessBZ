@@ -42,20 +42,24 @@ export default function ReportScreen({ navigation, route }) {
       Alert.alert('Permesso negato', 'Consenti l’accesso per allegare una foto.');
       return;
     }
-    const opts = { mediaTypes: ['images'], quality: 0.8 };
-    const res = fromCamera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
-    if (res.canceled) return;
+    try {
+      const opts = { mediaTypes: ['images'], quality: 0.8 };
+      const res = fromCamera ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts);
+      if (res.canceled) return;
 
-    // Riduciamo la foto (max 900 px, JPEG compresso) per caricarla velocemente
-    const rendered = await ImageManipulator.ImageManipulator.manipulate(res.assets[0].uri)
-      .resize({ width: 900 })
-      .renderAsync();
-    const saved = await rendered.saveAsync({
-      format: ImageManipulator.SaveFormat.JPEG,
-      compress: 0.6,
-      base64: true,
-    });
-    setPhoto({ uri: saved.uri, base64: saved.base64 });
+      // Riduciamo la foto (max 900 px, JPEG compresso) per caricarla velocemente
+      const rendered = await ImageManipulator.ImageManipulator.manipulate(res.assets[0].uri)
+        .resize({ width: 900 })
+        .renderAsync();
+      const saved = await rendered.saveAsync({
+        format: ImageManipulator.SaveFormat.JPEG,
+        compress: 0.6,
+        base64: true,
+      });
+      setPhoto({ uri: saved.uri, base64: saved.base64 });
+    } catch {
+      Alert.alert('Foto non disponibile', 'Non è stato possibile usare questa foto. Riprova con un’altra.');
+    }
   };
 
   const reset = () => {

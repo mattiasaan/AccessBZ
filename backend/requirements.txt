@@ -1,4 +1,6 @@
-# Versioni bloccate: un aggiornamento automatico non può introdurre cambiamenti imprevisti
+# Versioni bloccate: un aggiornamento automatico non può introdurre cambiamenti imprevisti.
+# Il driver PostgreSQL (psycopg) serve solo su Render ed è installato dal suo buildCommand,
+# così questo file funziona anche su Raspberry Pi (dove si usa SQLite).
 fastapi==0.162.6
 starlette==1.10.0
 uvicorn[standard]==0.54.0
@@ -6,4 +8,3 @@ SQLAlchemy==2.1.8
 pydantic==2.14.3
 httpx==0.28.1
 pillow==13.0.0
-psycopg[binary]>=3.2.3,<4

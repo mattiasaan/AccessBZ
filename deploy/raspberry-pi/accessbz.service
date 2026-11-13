@@ -1,0 +1,27 @@
+[Unit]
+Description=AccessBZ backend (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__BACKEND__
+ExecStart=__BACKEND__/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port __PORT__ --no-server-header --limit-concurrency 64 --timeout-keep-alive 5
+Restart=on-failure
+RestartSec=3
+
+# Protezioni: il servizio può scrivere solo nella cartella del backend (database e .env)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__BACKEND__
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

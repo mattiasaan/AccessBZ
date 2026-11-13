@@ -23,6 +23,7 @@ export const API_URL = (
 // Se il server non riconosce più il dispositivo (database ricreato), l'app si registra
 // di nuovo in automatico e ripete la richiesta una volta. La funzione la imposta AppContext.
 let reauthHandler = null;
+const REQUEST_TIMEOUT_MS = 45000;
 export function setReauthHandler(fn) {
   reauthHandler = fn;
 }
@@ -41,15 +42,25 @@ async function request(path, opts = {}) {
   const headers = {};
   if (body) headers['Content-Type'] = 'application/json';
   if (deviceId) headers['X-Device-Id'] = deviceId;
+  // Timeout: senza, una richiesta può restare appesa per sempre. 45 s lasciano tempo
+  // al server gratuito di Render di "svegliarsi" (circa 30–50 s dopo una pausa).
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let res;
   try {
     res = await fetch(`${API_URL}${path}${query}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (e) {
+    if (e?.name === 'AbortError') {
+      throw new Error('Il server non risponde. Riprova tra qualche secondo.');
+    }
     throw new Error(`Server non raggiungibile (${API_URL}). Controlla la connessione.`);
+  } finally {
+    clearTimeout(timer);
   }
   if (res.status === 401 && deviceId && !retried && path !== '/users' && reauthHandler) {
     await reauthHandler(deviceId);

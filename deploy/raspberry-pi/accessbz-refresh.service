@@ -1,0 +1,13 @@
+[Unit]
+Description=AccessBZ: rigenera i dati di esempio se hanno più di 12 ore
+
+[Service]
+Type=oneshot
+User=__USER__
+WorkingDirectory=__BACKEND__
+ExecStart=__BACKEND__/.venv/bin/python populate.py --refresh-if-stale 12
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=__BACKEND__

@@ -6,14 +6,17 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#F5F6F8",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "it.accessbz.app"
+      "bundleIdentifier": "it.accessbz.app",
+      "buildNumber": "1"
     },
     "android": {
       "package": "it.accessbz.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#1F5FBF",
+        "backgroundColor": "#2457E6",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -22,23 +25,41 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "CAMERA"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "plugins": [
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "AccessBZ usa la tua posizione per mostrarti gli ostacoli vicini e localizzare le segnalazioni."
+          "locationWhenInUsePermission": "AccessBZ usa la tua posizione per mostrarti gli ostacoli vicini e localizzare le segnalazioni.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ],
       [
         "expo-image-picker",
         {
           "cameraPermission": "AccessBZ usa la fotocamera per fotografare gli ostacoli che segnali.",
-          "photosPermission": "AccessBZ accede alle foto per allegarle alle segnalazioni."
+          "photosPermission": "AccessBZ accede alle foto per allegarle alle segnalazioni.",
+          "microphonePermission": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 140,
+          "resizeMode": "contain",
+          "backgroundColor": "#F5F6F8"
+        }
+      ],
+      "expo-build-properties"
     ],
     "extra": {
       "apiUrl": "https://accessbz-api.onrender.com"

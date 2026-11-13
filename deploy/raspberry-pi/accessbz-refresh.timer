@@ -1,0 +1,10 @@
+[Unit]
+Description=AccessBZ: controllo orario dei dati di esempio
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -117,6 +117,7 @@ export function AppProvider({ children }) {
     setAlert(null);
     setOpenReportId(null);
     setReports([]);
+    reportsRequest.current += 1; // ignora eventuali risposte ancora in arrivo per il vecchio utente
     announced.current = {};
     await AsyncStorage.removeItem(STORAGE_KEY);
     setUser(null);
@@ -131,13 +132,19 @@ export function AppProvider({ children }) {
   }, []);
 
   // ---------- segnalazioni ----------
+  // Contatore delle richieste: se ne parte una nuova (es. cambio profilo),
+  // la risposta di quella vecchia viene ignorata invece di sovrascrivere i dati nuovi.
+  const reportsRequest = useRef(0);
   const refreshReports = useCallback(async () => {
     if (!user) return;
+    const seq = ++reportsRequest.current;
     try {
       const list = await api.listReports(user.profile, deviceId);
+      if (seq !== reportsRequest.current) return;
       setReports(list);
       setReportsError(null);
     } catch (e) {
+      if (seq !== reportsRequest.current) return;
       setReportsError(e.message);
     }
   }, [user?.profile, deviceId]);

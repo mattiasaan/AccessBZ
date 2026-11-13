@@ -71,6 +71,11 @@ export default function CityMap({
         // baseUrl: i server di OpenStreetMap richiedono un "Referer" valido per le tessere della mappa
         source={{ html: HTML, baseUrl: 'https://accessbz.app/' }}
         originWhitelist={['*']}
+        // La WebView può mostrare solo la mappa: ogni tentativo di navigare altrove viene bloccato
+        onShouldStartLoadWithRequest={(req) =>
+          req.url.startsWith('https://accessbz.app') || req.url.startsWith('about:') || req.url.startsWith('data:')
+        }
+        setSupportMultipleWindows={false}
         onMessage={onMessage}
         javaScriptEnabled
         domStorageEnabled

@@ -73,6 +73,7 @@ SERVICE_AREA = {"min_lat": 46.38, "max_lat": 46.60, "min_lon": 11.18, "max_lon":
 MAX_ACTIVE_WINDOW = max(EXPIRY_WITHOUT_CONFIRMATION.values())
 REPORTS_PER_DEVICE_PER_DAY = 30
 MAX_AVOID_POLYGONS = 40
+MAX_ACTIVE_RESULTS = 1500
 
 
 def in_service_area(lat: float, lon: float) -> bool:
@@ -182,9 +183,14 @@ def load_active_candidates(db: Session, now=None):
     """Solo le segnalazioni che POSSONO essere attive (non risolte e confermate di recente):
     il filtro avviene nel database, non si carica tutta la tabella."""
     now = now or utcnow()
-    stmt = select(Report).where(
-        Report.resolved_at.is_(None),
-        Report.last_confirmed_at >= now - MAX_ACTIVE_WINDOW,
+    stmt = (
+        select(Report)
+        .where(
+            Report.resolved_at.is_(None),
+            Report.last_confirmed_at >= now - MAX_ACTIVE_WINDOW,
+        )
+        .order_by(Report.last_confirmed_at.desc())
+        .limit(MAX_ACTIVE_RESULTS)  # tetto: la risposta non può crescere senza limite
     )
     return db.scalars(_with_relations(stmt)).all()
 

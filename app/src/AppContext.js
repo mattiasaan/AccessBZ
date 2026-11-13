@@ -5,7 +5,9 @@ import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { api, setReauthHandler } from './api';
+import { AppState } from 'react-native';
+
+import { api, setReauthHandler, wakeServer } from './api';
 import { ALERT_RADIUS_M, CATEGORIES } from './constants';
 import { distanceM, locateOnRoute, pointAlong, randomId } from './utils';
 
@@ -39,6 +41,16 @@ export function AppProvider({ children }) {
 
   const position = simPosition || gpsPosition;
   const deviceId = user ? user.deviceId : null;
+
+  // ---------- risveglio del server ----------
+  // Appena l'app si apre (anche prima della registrazione) e ogni volta che torna in primo piano
+  useEffect(() => {
+    wakeServer(0);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') wakeServer();
+    });
+    return () => sub.remove();
+  }, []);
 
   // ---------- caricamento iniziale ----------
   useEffect(() => {

@@ -75,6 +75,17 @@ async function request(path, opts = {}) {
   return data;
 }
 
+// Risveglio del server: su Render gratuito il backend si "addormenta" dopo 15 minuti senza
+// richieste e impiega 30–50 s a ripartire. Una richiesta leggera appena si apre l'app lo fa
+// partire mentre l'utente guarda ancora la schermata iniziale. Non blocca nulla e ignora gli errori.
+let lastWake = 0;
+export function wakeServer(minIntervalMs = 5 * 60 * 1000) {
+  const now = Date.now();
+  if (now - lastWake < minIntervalMs) return;
+  lastWake = now;
+  fetch(`${API_URL}/`, { method: 'GET' }).catch(() => {});
+}
+
 export const api = {
   registerUser: (deviceId, nickname, profile) =>
     request('/users', { method: 'POST', body: { nickname, profile }, deviceId }),

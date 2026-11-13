@@ -62,10 +62,14 @@
       "expo-build-properties"
     ],
     "extra": {
-      "apiUrl": "https://accessbz-api.onrender.com"
+      "apiUrl": "https://accessbz-api.onrender.com",
+      "eas": {
+        "projectId": "76b4c8af-0512-4bab-bc7d-9f503db85913"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "owner": "mattiasan"
   }
 }

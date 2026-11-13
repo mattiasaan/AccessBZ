@@ -197,11 +197,6 @@ export default function ReportSheet() {
             })}
           </FadeIn>
 
-          {report.is_demo ? (
-            <T variant="caption" style={{ textAlign: 'center', marginTop: space.lg, color: colors.textSubtle }}>
-              Dato dimostrativo
-            </T>
-          ) : null}
           {report.is_mine ? (
             <Button title="Elimina la mia segnalazione" icon="trash-can-outline" variant="ghost" onPress={remove} style={{ marginTop: space.md }} />
           ) : null}

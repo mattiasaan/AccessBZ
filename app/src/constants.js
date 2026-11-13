@@ -44,7 +44,10 @@ export const STATUSES = {
 
 export const ACTIVE_STATUSES = ['new', 'confirmed', 'persistent'];
 
-// Centro di Bolzano (Piazza Walther): punto di partenza della demo
+// Centro di Bolzano (Piazza Walther): punto di partenza se il GPS è lontano da Bolzano
 export const BZ_CENTER = { lat: 46.4983, lon: 11.3548 };
+
+// SOLO SVILUPPO: pulsante "Reset account" nel profilo. Metti false per la versione finale.
+export const SHOW_ACCOUNT_RESET = true;
 
 export const ALERT_RADIUS_M = 40; // distanza a cui scatta l'avviso vocale

@@ -8,12 +8,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '../api';
 import { useApp } from '../AppContext';
 import { Button, Card, Divider, FadeIn, Icon, IconBadge, OptionCard, SectionHeader, T } from '../components/ui';
-import { CATEGORIES, PROFILES } from '../constants';
+import { CATEGORIES, PROFILES, SHOW_ACCOUNT_RESET } from '../constants';
 import { colors, radius, shadow, space } from '../theme';
 import { formatMinutes } from '../utils';
 
 export default function ProfileScreen() {
-  const { user, deviceId, setProfile, settings, updateSettings, toggleDemoAccount, refreshReports } = useApp();
+  const { user, deviceId, setProfile, settings, updateSettings, resetAccount } = useApp();
   const [me, setMe] = useState(null);
   const [city, setCity] = useState(null);
 
@@ -32,7 +32,17 @@ export default function ProfileScreen() {
     }
   };
 
-  const name = user.usingAlt ? `${user.nickname} (2)` : user.nickname;
+  const name = user.nickname;
+
+  const confirmReset = () =>
+    Alert.alert(
+      'Reset account?',
+      'Torni alla schermata iniziale e potrai entrare come un nuovo utente. Le segnalazioni già pubblicate restano sulla mappa.',
+      [
+        { text: 'Annulla', style: 'cancel' },
+        { text: 'Reset', style: 'destructive', onPress: () => resetAccount() },
+      ],
+    );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -44,7 +54,7 @@ export default function ProfileScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <T variant="title" accessibilityRole="header">{name}</T>
-              <T variant="label">{PROFILES[user.profile].label}{user.usingAlt ? ' · secondo account' : ''}</T>
+              <T variant="label">{PROFILES[user.profile].label}</T>
             </View>
           </View>
         </FadeIn>
@@ -134,21 +144,6 @@ export default function ProfileScreen() {
           </>
         ) : null}
 
-        <SectionHeader title="Modalità demo" subtitle="Mostra che un’altra persona conferma o chiude una segnalazione." />
-        <Button
-          title={user.usingAlt ? 'Torna all’account principale' : 'Passa al secondo account'}
-          icon="account-switch-outline"
-          variant="secondary"
-          onPress={async () => {
-            try {
-              await toggleDemoAccount();
-              refreshReports();
-            } catch (e) {
-              Alert.alert('Errore', e.message);
-            }
-          }}
-        />
-
         <SectionHeader title="Privacy" />
         <View style={styles.privacy}>
           <Icon name="shield-lock-outline" size={20} color={colors.textMuted} />
@@ -158,6 +153,19 @@ export default function ProfileScreen() {
             dalla loro scheda.
           </T>
         </View>
+        {SHOW_ACCOUNT_RESET ? (
+          <>
+            <SectionHeader title="Sviluppo" subtitle="Da rimuovere prima della versione finale." />
+            <Button
+              title="Reset account"
+              icon="logout-variant"
+              variant="secondary"
+              onPress={confirmReset}
+              accessibilityLabel="Reset account: torna alla schermata iniziale con un nuovo utente"
+            />
+          </>
+        ) : null}
+
         <T variant="caption" style={{ marginTop: space.lg, textAlign: 'center', color: colors.textSubtle }}>
           Mappe © OpenStreetMap contributors · Percorsi openrouteservice.org
         </T>

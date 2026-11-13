@@ -11,6 +11,7 @@ import { BZ_CENTER, CATEGORIES, PROFILES } from '../constants';
 import { colors, fonts, radius, shadow, space } from '../theme';
 import { distanceM, formatDistance } from '../utils';
 
+// Partenza della demo del percorso quando il GPS è lontano da Bolzano
 const DEMO_START = { ...BZ_CENTER, label: 'Piazza Walther (demo)' };
 const ROUTE_COLORS = { clean: '#15803D', blocked: '#DC2626' };
 

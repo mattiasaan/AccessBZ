@@ -1,5 +1,5 @@
 // Stato condiviso dell'app: utente, profilo, posizione, ostacoli, percorso attivo,
-// avvisi di prossimità e simulazione del tragitto (per la demo).
+// avvisi di prossimità e simulazione del tragitto.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
@@ -23,7 +23,7 @@ const SIM_SPEED_MPS = 4; // velocità della simulazione (un po' più veloce di u
 
 export function AppProvider({ children }) {
   const [ready, setReady] = useState(false);
-  const [user, setUser] = useState(null); // { deviceId, nickname, profile, altDeviceId?, usingAlt? }
+  const [user, setUser] = useState(null); // { deviceId, nickname, profile }
   const [settings, setSettings] = useState({ voice: true });
   const [reports, setReports] = useState([]);
   const [reportsError, setReportsError] = useState(null);
@@ -38,7 +38,7 @@ export function AppProvider({ children }) {
   const simTimer = useRef(null);
 
   const position = simPosition || gpsPosition;
-  const deviceId = user ? (user.usingAlt ? user.altDeviceId : user.deviceId) : null;
+  const deviceId = user ? user.deviceId : null;
 
   // ---------- caricamento iniziale ----------
   useEffect(() => {
@@ -62,8 +62,7 @@ export function AppProvider({ children }) {
     setReauthHandler(async (id) => {
       const u = userRef.current;
       if (!u) return;
-      const isAlt = id === u.altDeviceId;
-      await api.registerUser(id, isAlt ? `${u.nickname} (2)` : u.nickname, u.profile).catch(() => {});
+      await api.registerUser(id, u.nickname, u.profile).catch(() => {});
     });
     return () => setReauthHandler(null);
   }, []);
@@ -102,22 +101,26 @@ export function AppProvider({ children }) {
     async (profile) => {
       if (!user) return;
       await api.registerUser(user.deviceId, user.nickname, profile);
-      if (user.altDeviceId) {
-        await api.registerUser(user.altDeviceId, `${user.nickname} (2)`, profile).catch(() => {});
-      }
       await saveUser({ ...user, profile });
     },
     [user, saveUser],
   );
 
-  // Secondo account sullo stesso telefono: serve per mostrare nella demo
-  // che un'altra persona conferma o chiude una segnalazione.
-  const toggleDemoAccount = useCallback(async () => {
-    if (!user) return;
-    const altDeviceId = user.altDeviceId || `${user.deviceId}-b`;
-    await api.registerUser(altDeviceId, `${user.nickname} (2)`, user.profile);
-    await saveUser({ ...user, altDeviceId, usingAlt: !user.usingAlt });
-  }, [user, saveUser]);
+  // SOLO SVILUPPO: dimentica l'utente su questo telefono e torna alla schermata iniziale.
+  // Al nuovo accesso viene generato un nuovo ID dispositivo (= nuovo utente).
+  // I dati del vecchio utente restano sul server.
+  const resetAccount = useCallback(async () => {
+    clearInterval(simTimer.current);
+    simTimer.current = null;
+    setSimPosition(null);
+    setActiveRoute(null);
+    setAlert(null);
+    setOpenReportId(null);
+    setReports([]);
+    announced.current = {};
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    setUser(null);
+  }, []);
 
   const updateSettings = useCallback(async (patch) => {
     setSettings((prev) => {
@@ -240,7 +243,7 @@ export function AppProvider({ children }) {
     deviceId,
     register,
     setProfile,
-    toggleDemoAccount,
+    resetAccount,
     settings,
     updateSettings,
     reports,

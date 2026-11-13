@@ -5,7 +5,7 @@ import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { api } from './api';
+import { api, setReauthHandler } from './api';
 import { ALERT_RADIUS_M, CATEGORIES } from './constants';
 import { distanceM, locateOnRoute, pointAlong, randomId } from './utils';
 
@@ -53,6 +53,19 @@ export function AppProvider({ children }) {
       } catch {}
       setReady(true);
     })();
+  }, []);
+
+  // Ri-registrazione automatica se durante l'uso il server risponde "Utente non registrato"
+  const userRef = useRef(user);
+  userRef.current = user;
+  useEffect(() => {
+    setReauthHandler(async (id) => {
+      const u = userRef.current;
+      if (!u) return;
+      const isAlt = id === u.altDeviceId;
+      await api.registerUser(id, isAlt ? `${u.nickname} (2)` : u.nickname, u.profile).catch(() => {});
+    });
+    return () => setReauthHandler(null);
   }, []);
 
   // ---------- GPS ----------

@@ -20,9 +20,17 @@ export const API_URL = (
   'http://localhost:8000'
 ).replace(/\/$/, '');
 
+// Se il server non riconosce più il dispositivo (database ricreato), l'app si registra
+// di nuovo in automatico e ripete la richiesta una volta. La funzione la imposta AppContext.
+let reauthHandler = null;
+export function setReauthHandler(fn) {
+  reauthHandler = fn;
+}
+
 // deviceId: identificativo segreto del dispositivo. Viaggia nell'header X-Device-Id,
 // mai nell'indirizzo, così non finisce nei log dei server.
-async function request(path, { method = 'GET', body, params, deviceId } = {}) {
+async function request(path, opts = {}) {
+  const { method = 'GET', body, params, deviceId, retried } = opts;
   const query = params
     ? '?' +
       Object.entries(params)
@@ -42,6 +50,10 @@ async function request(path, { method = 'GET', body, params, deviceId } = {}) {
     });
   } catch {
     throw new Error(`Server non raggiungibile (${API_URL}). Controlla la connessione.`);
+  }
+  if (res.status === 401 && deviceId && !retried && path !== '/users' && reauthHandler) {
+    await reauthHandler(deviceId);
+    return request(path, { ...opts, retried: true });
   }
   if (res.status === 204) return null;
   const data = await res.json().catch(() => null);

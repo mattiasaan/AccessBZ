@@ -76,6 +76,8 @@ Se qualcosa sembra "vecchio" dopo un cambio di configurazione: `npx expo start -
 
 ## 4. Backend su Render (online, HTTPS)
 
+Checklist completa, con i controlli e i limiti del piano gratuito: [DEPLOY-RENDER.md](DEPLOY-RENDER.md).
+
 1. Su <https://dashboard.render.com>: **New → Blueprint** → repository `AccessBZ` (usa `render.yaml`).
 2. Quando lo chiede, inserisci `ORS_API_KEY`.
 3. Al primo avvio il database viene popolato da solo.

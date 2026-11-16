@@ -124,8 +124,8 @@ export default function RouteScreen({ navigation }) {
                 </View>
                 <TextInput
                   value={query}
-                  onChangeText={(t) => {
-                    setQuery(t);
+                  onChangeText={(text) => {
+                    setQuery(text);
                     setDestination(null);
                   }}
                   onSubmitEditing={search}

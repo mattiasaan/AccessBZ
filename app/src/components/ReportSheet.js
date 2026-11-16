@@ -179,8 +179,8 @@ export default function ReportSheet() {
 
           <FadeIn delay={200}>
             <T variant="overline" style={{ marginTop: space.xl, marginBottom: space.md }}>{t('sheet.timeline')}</T>
-            {report.timeline.map((t, i) => {
-              const m = TIMELINE[t.type];
+            {report.timeline.map((ev, i) => {
+              const m = TIMELINE[ev.type];
               const last = i === report.timeline.length - 1;
               return (
                 <View key={i} style={styles.tl}>
@@ -193,8 +193,8 @@ export default function ReportSheet() {
                   <View style={{ flex: 1, paddingBottom: last ? 0 : space.md }}>
                     <T variant="bodyMedium">{t(m.text)}</T>
                     <T variant="caption">
-                      {timeAgo(t.at)}
-                      {t.by ? ` · ${t.by}` : ''}
+                      {timeAgo(ev.at)}
+                      {ev.by ? ` · ${ev.by}` : ''}
                     </T>
                   </View>
                 </View>

@@ -22,8 +22,8 @@ export default function ProximityBanner() {
       setShown(alert);
       y.setValue(-200);
       Animated.spring(y, { toValue: 0, useNativeDriver: true, damping: 16, stiffness: 180 }).start();
-      const t = setTimeout(dismissAlert, AUTO_HIDE_MS);
-      return () => clearTimeout(t);
+      const timer = setTimeout(dismissAlert, AUTO_HIDE_MS);
+      return () => clearTimeout(timer);
     }
     if (shown) {
       Animated.timing(y, { toValue: -200, duration: 220, useNativeDriver: true }).start(() => setShown(null));

@@ -177,8 +177,8 @@ export function AppProvider({ children }) {
 
   useEffect(() => {
     refreshReports();
-    const t = setInterval(refreshReports, 30000);
-    return () => clearInterval(t);
+    const timer = setInterval(refreshReports, 30000);
+    return () => clearInterval(timer);
   }, [refreshReports]);
 
   // ---------- avvisi di prossimità ----------

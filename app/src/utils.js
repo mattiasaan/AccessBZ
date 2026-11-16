@@ -64,9 +64,9 @@ export function locateOnRoute(point, line) {
     const bx = line[i + 1][1] * kx, by = line[i + 1][0] * ky;
     const dx = bx - ax, dy = by - ay;
     const len = Math.hypot(dx, dy);
-    const t = len === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (len * len)));
-    const d = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-    if (d < best.dist) best = { dist: d, along: travelled + t * len };
+    const frac = len === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (len * len)));
+    const d = Math.hypot(px - (ax + frac * dx), py - (ay + frac * dy));
+    if (d < best.dist) best = { dist: d, along: travelled + frac * len };
     travelled += len;
   }
   return best;
@@ -80,8 +80,8 @@ export function pointAlong(line, meters) {
     const b = { lat: line[i + 1][0], lon: line[i + 1][1] };
     const seg = distanceM(a, b);
     if (left <= seg) {
-      const t = seg === 0 ? 0 : left / seg;
-      return { lat: a.lat + (b.lat - a.lat) * t, lon: a.lon + (b.lon - a.lon) * t, done: false };
+      const frac = seg === 0 ? 0 : left / seg;
+      return { lat: a.lat + (b.lat - a.lat) * frac, lon: a.lon + (b.lon - a.lon) * frac, done: false };
     }
     left -= seg;
   }

@@ -33,7 +33,7 @@ from pathlib import Path
 
 from sqlalchemy import func
 
-from app.database import Base, SessionLocal, engine
+from app.database import Base, SessionLocal, create_tables, engine
 from app.lifecycle import EXPIRY_WITHOUT_CONFIRMATION, REMOVALS_FOR_RESOLVED, utcnow
 from app.models import Report, User, Vote
 
@@ -439,7 +439,7 @@ def main(argv=None):
 
     if args.reset:
         Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    create_tables()
 
     db = SessionLocal()
     try:

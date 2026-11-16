@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from . import routing
 from .categories import CATEGORIES, DEFAULT_PROFILE, LEGACY_PROFILES, PROFILES, is_relevant, normalize_profile
-from .database import Base, engine, get_db
+from .database import create_tables, engine, get_db
 from .lifecycle import (
     ACTIVE_STATUSES,
     EXPECTED_DURATION,
@@ -42,7 +42,7 @@ from .security import (
 
 log = logging.getLogger("accessbz")
 
-Base.metadata.create_all(bind=engine)
+create_tables()
 
 # Utenti registrati con i profili delle versioni precedenti (Pedone, Bicicletta) -> nuovo profilo
 with engine.begin() as conn:
@@ -258,7 +258,8 @@ def place_history(db: Session, r: Report, now=None) -> dict:
 
 # ---------------------------------------------------------------- endpoint
 
-@app.get("/")
+# HEAD: alcuni servizi di monitoraggio (e il controllo interno di Render) usano HEAD invece di GET
+@app.api_route("/", methods=["GET", "HEAD"])
 def health():
     return {"app": "AccessBZ", "ok": True, "routing": bool(routing.ORS_API_KEY)}
 

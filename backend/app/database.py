@@ -3,8 +3,10 @@
 In locale usa SQLite (file accessbz.db). Su Render legge DATABASE_URL (PostgreSQL).
 """
 import os
+import time
 
 from sqlalchemy import create_engine, event
+from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./accessbz.db")
@@ -43,3 +45,18 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def create_tables(attempts: int = 10, wait_s: float = 3):
+    """Crea le tabelle mancanti. Su Render server e popolamento partono insieme: se l'altro
+    processo sta creando le stesse tabelle, PostgreSQL rifiuta la seconda creazione.
+    In quel caso (o se il database non è ancora pronto) si aspetta e si riprova: al tentativo
+    successivo le tabelle esistono già e non c'è niente da creare."""
+    for attempt in range(1, attempts + 1):
+        try:
+            Base.metadata.create_all(bind=engine)
+            return
+        except (IntegrityError, ProgrammingError, OperationalError):
+            if attempt == attempts:
+                raise
+            time.sleep(wait_s)

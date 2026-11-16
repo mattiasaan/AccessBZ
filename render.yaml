@@ -11,8 +11,8 @@ services:
     buildCommand: pip install --retries 10 --timeout 120 --progress-bar off -r requirements.txt "psycopg[binary]>=3.2.3,<4"
     # Il popolamento gira in background: rigenera i dati di esempio solo se hanno più di 12 ore
     # (le segnalazioni degli utenti veri non vengono toccate) e non rallenta l'avvio del server.
-    # Parte dopo 10 s: al primo avvio il server crea le tabelle da solo, così i due processi
-    # non provano a crearle insieme su PostgreSQL (uno dei due andrebbe in errore).
+    # Parte dopo 10 s: al primo avvio il server crea le tabelle. Se i due processi provano
+    # comunque a crearle insieme, chi arriva secondo aspetta e riprova (create_tables in database.py).
     startCommand: >-
       (sleep 10; python populate.py --refresh-if-stale 12) &
       exec uvicorn app.main:app --host 0.0.0.0 --port $PORT

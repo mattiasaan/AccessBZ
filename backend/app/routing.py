@@ -89,21 +89,25 @@ def _require_key():
         raise RoutingError("Chiave ORS_API_KEY mancante sul server")
 
 
-def ors_route(start, end, ors_profile, avoid_points=None):
-    """start/end = (lat, lon). Ritorna dict con geometry [(lat, lon)], distance_m, duration_s."""
+def ors_route(start, end, ors_profile, avoid_points=None, avoid_features=None):
+    """start/end = (lat, lon). Ritorna dict con geometry [(lat, lon)], distance_m, duration_s.
+    avoid_features: es. ["steps"] per evitare le scale (solo profili a piedi)."""
     _require_key()
     body = {
         "coordinates": [[start[1], start[0]], [end[1], end[0]]],
         "instructions": False,
         "language": "it",
     }
+    options = {}
+    if avoid_features:
+        options["avoid_features"] = list(avoid_features)
     if avoid_points:
-        body["options"] = {
-            "avoid_polygons": {
-                "type": "MultiPolygon",
-                "coordinates": [avoid_square(lat, lon) for lat, lon in avoid_points],
-            }
+        options["avoid_polygons"] = {
+            "type": "MultiPolygon",
+            "coordinates": [avoid_square(lat, lon) for lat, lon in avoid_points],
         }
+    if options:
+        body["options"] = options
     resp = httpx.post(
         f"{ORS_URL}/v2/directions/{ors_profile}/geojson",
         json=body,

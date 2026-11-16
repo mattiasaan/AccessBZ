@@ -24,15 +24,20 @@ export const CATEGORIES = {
 };
 
 const ALL = Object.keys(CATEGORIES);
-const STREET = ['works', 'construction', 'closed', 'obstacle', 'snow', 'other'];
 
+// Per chi è AccessBZ: persone per cui un ostacolo è un problema vero.
+// Il profilo decide il tipo di percorso (vedi backend/app/categories.py).
+// Chi vuole solo aiutare con le segnalazioni sceglie il profilo di chi vuole aiutare.
 export const PROFILES = {
-  pedestrian: tr({ icon: 'walk', categories: STREET }, { label: 'profile.pedestrian', hint: 'profileHint.pedestrian' }),
   wheelchair: tr({ icon: 'wheelchair-accessibility', categories: ALL }, { label: 'profile.wheelchair', hint: 'profileHint.wheelchair' }),
   blind: tr({ icon: 'human-white-cane', categories: ALL }, { label: 'profile.blind', hint: 'profileHint.blind' }),
+  elderly: tr({ icon: 'human-cane', categories: ALL }, { label: 'profile.elderly', hint: 'profileHint.elderly' }),
   stroller: tr({ icon: 'baby-carriage', categories: ALL }, { label: 'profile.stroller', hint: 'profileHint.stroller' }),
-  bike: tr({ icon: 'bike', categories: STREET }, { label: 'profile.bike', hint: 'profileHint.bike' }),
 };
+
+export const DEFAULT_PROFILE = 'wheelchair';
+// Profili delle versioni precedenti (Pedone, Bicicletta): diventano "Anziani", come nel backend
+export const LEGACY_PROFILES = { pedestrian: 'elderly', bike: 'elderly' };
 
 export const DURATIONS = {
   minutes: tr({ icon: 'lightning-bolt-outline' }, { label: 'duration.minutes' }),

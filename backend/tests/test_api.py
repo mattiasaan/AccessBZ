@@ -82,8 +82,8 @@ def test_full_lifecycle():
     assert detail["timeline"][0]["type"] == "created"
     assert detail["timeline"][-1]["type"] == "resolved"
 
-    ids = [x["id"] for x in client.get("/reports", params={"scope": "all", "profile": "bike"}).json()]
-    assert rid not in ids
+    ids = [x["id"] for x in client.get("/reports", params={"scope": "all", "profile": "elderly"}).json()]
+    assert rid in ids
     assert client.get("/stats/me", headers=h("aaaa")).json()["resolved"] == 1
 
 
@@ -179,7 +179,7 @@ def test_whole_region_is_served():
     r = client.post("/reports", json={"category": "works", "lat": 46.7962, "lon": 11.9387}, headers=h("region"))
     assert r.status_code == 201
     # Bolzano -> Trento a piedi: troppo lontano
-    r = client.post("/route", json={"start": [46.4983, 11.3548], "end": [46.0679, 11.1211], "profile": "pedestrian"})
+    r = client.post("/route", json={"start": [46.4983, 11.3548], "end": [46.0679, 11.1211], "profile": "elderly"})
     assert r.status_code == 422
 
 
@@ -252,3 +252,22 @@ def test_obstacles_on_route():
     found = routing.obstacles_on_route(line, obs)
     assert [o["id"] for o in found] == [3, 1]
     assert 70 < found[0]["distance_along_m"] < 85
+
+
+def test_legacy_profiles_become_elderly():
+    # Un'app vecchia che invia "pedestrian" o "bike" continua a funzionare
+    r = client.post("/users", json={"nickname": "vecchia", "profile": "bike"}, headers=h("legacy"))
+    assert r.status_code == 200 and r.json()["profile"] == "elderly"
+
+
+def test_elderly_route_avoids_steps(monkeypatch):
+    calls = []
+
+    def fake(start, end, profile, avoid_points=None, avoid_features=None):
+        calls.append((profile, avoid_features))
+        return {"geometry": [start, end], "distance_m": 100, "duration_s": 80}
+
+    monkeypatch.setattr(routing, "ors_route", fake)
+    r = client.post("/route", json={"start": [46.4983, 11.3548], "end": [46.5, 11.356], "profile": "elderly"})
+    assert r.status_code == 200
+    assert calls[0] == ("foot-walking", ["steps"])

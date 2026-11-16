@@ -8,11 +8,11 @@ from datetime import timedelta
 from fastapi import Depends, FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session, selectinload
 
 from . import routing
-from .categories import CATEGORIES, PROFILES, is_relevant
+from .categories import CATEGORIES, DEFAULT_PROFILE, LEGACY_PROFILES, PROFILES, is_relevant, normalize_profile
 from .database import Base, engine, get_db
 from .lifecycle import (
     ACTIVE_STATUSES,
@@ -43,6 +43,11 @@ from .security import (
 log = logging.getLogger("accessbz")
 
 Base.metadata.create_all(bind=engine)
+
+# Utenti registrati con i profili delle versioni precedenti (Pedone, Bicicletta) -> nuovo profilo
+with engine.begin() as conn:
+    for old, new in LEGACY_PROFILES.items():
+        conn.execute(update(User).where(User.profile == old).values(profile=new))
 
 # In produzione la documentazione interattiva non è pubblica
 app = FastAPI(
@@ -92,7 +97,12 @@ def require_area(lat: float, lon: float):
 
 class UserIn(BaseModel):
     nickname: str = Field(min_length=1, max_length=40)
-    profile: str = "pedestrian"
+    profile: str = DEFAULT_PROFILE
+
+    @field_validator("profile")
+    @classmethod
+    def _profile(cls, v):
+        return normalize_profile(v)
 
     @field_validator("nickname")
     @classmethod
@@ -124,7 +134,12 @@ class VoteIn(BaseModel):
 class RouteIn(BaseModel):
     start: tuple[float, float]  # (lat, lon)
     end: tuple[float, float]
-    profile: str = Field(default="pedestrian", max_length=20)
+    profile: str = Field(default=DEFAULT_PROFILE, max_length=20)
+
+    @field_validator("profile")
+    @classmethod
+    def _profile(cls, v):
+        return normalize_profile(v)
 
 
 # ---------------------------------------------------------------- utilità
@@ -452,6 +467,7 @@ def route(data: RouteIn, db: Session = Depends(get_db)):
     if routing.haversine_m(data.start, data.end) > MAX_ROUTE_KM * 1000:
         raise HTTPException(422, f"Destinazione troppo lontana (massimo {MAX_ROUTE_KM} km)")
     ors_profile = PROFILES[data.profile]["ors"]
+    avoid_features = PROFILES[data.profile].get("avoid")
     now = utcnow()
     active = [
         report_to_dict(r, now)
@@ -465,7 +481,7 @@ def route(data: RouteIn, db: Session = Depends(get_db)):
 
     try:
         spend_ors_budget()
-        fast = routing.ors_route(data.start, data.end, ors_profile)
+        fast = routing.ors_route(data.start, data.end, ors_profile, avoid_features=avoid_features)
         fast["obstacles"] = routing.obstacles_on_route(fast["geometry"], slim)
         routes = [{"id": "fast", "label": "Percorso più veloce", **fast}]
 
@@ -476,7 +492,7 @@ def route(data: RouteIn, db: Session = Depends(get_db)):
             avoid = [(o["lat"], o["lon"]) for o in closest[:MAX_AVOID_POLYGONS]]
             try:
                 spend_ors_budget()
-                alt = routing.ors_route(data.start, data.end, ors_profile, avoid_points=avoid)
+                alt = routing.ors_route(data.start, data.end, ors_profile, avoid_points=avoid, avoid_features=avoid_features)
                 alt["obstacles"] = routing.obstacles_on_route(alt["geometry"], slim)
                 routes.append({"id": "accessible", "label": "Percorso senza ostacoli", **alt})
             except routing.RoutingError:

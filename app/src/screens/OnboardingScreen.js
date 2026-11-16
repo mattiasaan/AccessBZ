@@ -5,14 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp } from '../AppContext';
 import { Button, FadeIn, Icon, LanguageSwitch, OptionCard, SectionHeader, T } from '../components/ui';
-import { PROFILES } from '../constants';
+import { DEFAULT_PROFILE, PROFILES } from '../constants';
 import { t } from '../i18n';
 import { colors, fonts, radius, space } from '../theme';
 
 export default function OnboardingScreen() {
   const { register, language, updateSettings } = useApp();
   const [nickname, setNickname] = useState('');
-  const [profile, setProfile] = useState('wheelchair');
+  const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
 

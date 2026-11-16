@@ -8,7 +8,7 @@ import { AppState } from 'react-native';
 
 import { api, setReauthHandler, wakeServer } from './api';
 import { initSpeech, speak } from './speech';
-import { ALERT_RADIUS_M, CATEGORIES } from './constants';
+import { ALERT_RADIUS_M, CATEGORIES, DEFAULT_PROFILE, LEGACY_PROFILES, PROFILES } from './constants';
 import { deviceLanguage, getLanguage, persons, setLanguage, t } from './i18n';
 import { distanceM, locateOnRoute, pointAlong, randomId } from './utils';
 
@@ -65,7 +65,16 @@ export function AppProvider({ children }) {
           AsyncStorage.getItem(STORAGE_KEY),
           AsyncStorage.getItem(SETTINGS_KEY),
         ]);
-        if (u) setUser(JSON.parse(u));
+        if (u) {
+          const stored = JSON.parse(u);
+          // Profilo di una versione precedente (Pedone, Bicicletta): passa al nuovo profilo
+          if (!PROFILES[stored.profile]) {
+            stored.profile = LEGACY_PROFILES[stored.profile] || DEFAULT_PROFILE;
+            AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stored)).catch(() => {});
+            api.registerUser(stored.deviceId, stored.nickname, stored.profile).catch(() => {});
+          }
+          setUser(stored);
+        }
         if (s) setSettings((prev) => ({ ...prev, ...JSON.parse(s) }));
       } catch {}
       setReady(true);

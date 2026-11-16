@@ -15,7 +15,7 @@ class User(Base):
     # Nessuna email o password: l'utente è identificato da un ID casuale del dispositivo.
     device_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     nickname: Mapped[str] = mapped_column(String(40))
-    profile: Mapped[str] = mapped_column(String(20), default="pedestrian")
+    profile: Mapped[str] = mapped_column(String(20), default="wheelchair")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

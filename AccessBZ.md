@@ -67,9 +67,10 @@ Questi problemi possono essere particolarmente importanti per:
 - persone ipovedenti;
 - persone anziane;
 - persone con difficoltà motorie;
-- genitori con passeggini;
-- ciclisti;
-- pedoni.
+- genitori con passeggini.
+
+Le segnalazioni però le può fare chiunque: chi cammina senza difficoltà vede l'auto sulla rampa
+e, segnalandola, aiuta chi da lì non può passare.
 
 ---
 
@@ -87,21 +88,13 @@ AccessBZ vuole dire:
 
 ---
 
-# 👤 Profili di mobilità
+# 👤 Profili: per chi usi AccessBZ?
 
-L'utente può scegliere il proprio profilo.
+AccessBZ nasce per le persone per cui un ostacolo in città è un problema vero.
+All'inizio l'utente sceglie **per chi usa l'app**: il profilo decide che tipo di percorso
+viene calcolato.
 
-## 🚶 Pedone
-
-Informazioni principali:
-
-- marciapiedi;
-- attraversamenti;
-- lavori;
-- ostacoli;
-- strade chiuse.
-
----
+> **Se vuoi solo aiutare con le segnalazioni, scegli chi vuoi aiutare.**
 
 ## ♿ Carrozzina
 
@@ -131,6 +124,19 @@ Possibilità di utilizzare la **sintesi vocale**.
 
 ---
 
+## 🧓 Anziani
+
+Priorità:
+
+- scalinate (un gradino si fa, una rampa di scale no);
+- neve e ghiaccio, per il rischio di cadute;
+- ascensori fuori servizio;
+- marciapiedi occupati che costringono a scendere in strada.
+
+Il percorso è a piedi ma **evita le scale**.
+
+---
+
 ## 👶 Passeggino
 
 Priorità:
@@ -142,16 +148,6 @@ Priorità:
 - passaggi stretti.
 
 ---
-
-## 🚲 Bicicletta
-
-Priorità:
-
-- piste ciclabili;
-- lavori;
-- strade chiuse;
-- ostacoli;
-- deviazioni.
 
 ---
 
@@ -523,13 +519,13 @@ Uno degli elementi concettuali più forti:
 
 La stessa strada può essere:
 
-🟢 normale per un pedone
+🟢 normale per chi cammina senza difficoltà
 
 🔴 impraticabile per una persona in carrozzina
 
 🟡 problematica per una persona ipovedente
 
-🟢 normale per un ciclista
+🟠 faticosa e rischiosa per una persona anziana
 
 AccessBZ personalizza quindi la rappresentazione della città in base alle esigenze dell'utente.
 
@@ -1195,7 +1191,7 @@ Il database e il sistema di segnalazione possono funzionare indipendentemente da
 > 
 > Gli utenti possono segnalare ostacoli, confermarli, seguirne la durata e ricevere avvisi quando si avvicinano.
 > 
-> L'app adatta inoltre il percorso alle esigenze di ogni persona: una carrozzina, un ipovedente, un passeggino o un ciclista possono avere percorsi completamente diversi.
+> L'app adatta inoltre il percorso alle esigenze di ogni persona: una persona in carrozzina, una persona ipovedente, una persona anziana o un genitore con il passeggino possono avere percorsi completamente diversi.
 > 
 > **Perché la città è la stessa. Il percorso non lo è.**
 > 

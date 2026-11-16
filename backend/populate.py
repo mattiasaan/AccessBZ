@@ -207,7 +207,7 @@ NICKNAMES = [
     "Lukas", "Anna-Lena", "Maximilian", "Sophia", "Jonas", "Lea", "Tobias", "Hannah", "Florian", "Julia",
     "Giorgio", "Rita", "Franz", "Ingrid", "Bruno", "Teresa", "Hans", "Lucia", "Peter", "Irene",
 ]
-PROFILE_WEIGHTS = {"pedestrian": 4, "wheelchair": 3, "stroller": 2, "blind": 1, "bike": 2}
+PROFILE_WEIGHTS = {"elderly": 4, "wheelchair": 3, "stroller": 3, "blind": 2}
 
 
 # ------------------------------------------------------------------ utilità

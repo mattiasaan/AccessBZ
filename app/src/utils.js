@@ -2,6 +2,7 @@
 import * as Crypto from 'expo-crypto';
 
 import { REGION_RECT } from './constants';
+import { t } from './i18n';
 
 // Il punto è nell'area servita (Trentino-Alto Adige)?
 export function inRegion(p) {
@@ -20,20 +21,21 @@ export function distanceM(a, b) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function formatMinutes(min) {
+// dative: in tedesco "vor 3 Tagen" / "seit 3 Tagen" (in italiano non cambia nulla)
+export function formatMinutes(min, dative = false) {
   if (min == null) return '—';
-  if (min < 1) return 'meno di un minuto';
+  if (min < 1) return t('time.lessThanMinute');
   if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60);
   if (h < 24) return `${h} h ${min % 60 ? `${min % 60} min` : ''}`.trim();
   const d = Math.round(h / 24);
-  return d === 1 ? '1 giorno' : `${d} giorni`;
+  return d === 1 ? t('time.day') : t(dative ? 'time.daysDative' : 'time.days', { n: d });
 }
 
 export function timeAgo(iso) {
   if (!iso) return '';
   const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  return `${formatMinutes(min)} fa`.replace('meno di un minuto fa', 'adesso');
+  return min < 1 ? t('time.now') : t('time.ago', { t: formatMinutes(min, true) });
 }
 
 export function formatDistance(m) {

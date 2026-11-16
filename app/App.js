@@ -20,6 +20,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import RouteScreen from './src/screens/RouteScreen';
+import { t } from './src/i18n';
 import { colors, fonts } from './src/theme';
 
 const Tab = createBottomTabNavigator();
@@ -53,6 +54,8 @@ function Root() {
           screenOptions={({ route }) => ({
             headerShown: false,
             animation: 'fade',
+            // I nomi delle schede restano in italiano (servono a navigate); l'etichetta è tradotta
+            tabBarLabel: t(`tabs.${route.name}`),
             tabBarActiveTintColor: colors.primary,
             tabBarInactiveTintColor: colors.textSubtle,
             tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 11 },

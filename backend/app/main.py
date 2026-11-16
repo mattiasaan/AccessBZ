@@ -425,6 +425,7 @@ def geocode(
     q: str = Query(min_length=2, max_length=100),
     lat: float | None = Query(default=None, ge=-90, le=90),
     lon: float | None = Query(default=None, ge=-180, le=180),
+    lang: str = Query(default="it", pattern="^(it|de)$"),  # lingua dei nomi (Bolzano / Bozen)
 ):
     q = clean_text(q)
     if len(q) < 2:
@@ -433,7 +434,7 @@ def geocode(
     focus = (lat, lon) if lat is not None and lon is not None and in_service_area(lat, lon) else None
     spend_ors_budget()
     try:
-        return routing.geocode(q, focus)
+        return routing.geocode(q, focus, lang)
     except routing.RoutingError as e:
         log.warning("geocode: %s", e)
         raise HTTPException(503, "Servizio di ricerca non disponibile")

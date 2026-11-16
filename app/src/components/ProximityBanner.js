@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '../AppContext';
 import { CATEGORIES } from '../constants';
+import { t } from '../i18n';
 import { colors, radius, shadow, space } from '../theme';
 import { Icon, PressableScale, T } from './ui';
 
@@ -45,19 +46,19 @@ export default function ProximityBanner() {
           dismissAlert();
         }}
         accessibilityRole="button"
-        accessibilityLabel={`Attenzione: ${cat?.label} a ${meters} metri. Tocca per aprire.`}
+        accessibilityLabel={t('alert.a11y', { c: cat?.label, m: meters })}
       >
         <View style={styles.iconWrap}>
           <Icon name={cat?.icon} size={26} color={colors.text} />
         </View>
         <View style={{ flex: 1 }}>
           <T variant="overline" style={{ color: 'rgba(15,23,42,0.7)' }}>
-            {shown.ahead ? (meters < 8 ? 'Attenzione · adesso' : `Sul percorso · tra ${meters} m`) : `Attenzione · ${meters} m`}
+            {shown.ahead ? (meters < 8 ? t('alert.now') : t('alert.ahead', { m: meters })) : t('alert.near', { m: meters })}
           </T>
           <T variant="heading">{cat?.label}</T>
-          <T variant="caption" style={{ color: 'rgba(15,23,42,0.75)' }}>Tocca per confermare se c’è ancora</T>
+          <T variant="caption" style={{ color: 'rgba(15,23,42,0.75)' }}>{t('alert.tapConfirm')}</T>
         </View>
-        <Pressable onPress={dismissAlert} hitSlop={12} accessibilityLabel="Chiudi avviso" style={styles.close}>
+        <Pressable onPress={dismissAlert} hitSlop={12} accessibilityLabel={t('alert.close')} style={styles.close}>
           <Icon name="close" size={20} color={colors.text} />
         </Pressable>
       </PressableScale>

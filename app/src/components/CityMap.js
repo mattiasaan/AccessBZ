@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import { CATEGORIES, STATUSES } from '../constants';
+import { t } from '../i18n';
 import { HTML } from './mapHtml';
 
 /**
@@ -84,7 +85,7 @@ export default function CityMap({
         allowsLinkPreview={false}
         textInteractionEnabled={false}
         style={styles.web}
-        accessibilityLabel="Mappa della città con gli ostacoli segnalati"
+        accessibilityLabel={t('map.a11y')}
       />
     </View>
   );

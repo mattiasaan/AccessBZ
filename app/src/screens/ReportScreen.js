@@ -9,6 +9,7 @@ import { api } from '../api';
 import { useApp } from '../AppContext';
 import { Button, FadeIn, Icon, PressableScale, SectionHeader, T } from '../components/ui';
 import { CATEGORIES, DURATIONS } from '../constants';
+import { persons, t } from '../i18n';
 import { colors, fonts, radius, shadow, softTint, space } from '../theme';
 import { inRegion, timeAgo } from '../utils';
 
@@ -41,7 +42,7 @@ export default function ReportScreen({ navigation, route }) {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permesso negato', 'Consenti l’accesso per allegare una foto.');
+      Alert.alert(t('report.permDenied'), t('report.permDeniedMsg'));
       return;
     }
     try {
@@ -60,7 +61,7 @@ export default function ReportScreen({ navigation, route }) {
       });
       setPhoto({ uri: saved.uri, base64: saved.base64 });
     } catch {
-      Alert.alert('Foto non disponibile', 'Non è stato possibile usare questa foto. Riprova con un’altra.');
+      Alert.alert(t('report.photoUnavailable'), t('report.photoUnavailableMsg'));
     }
   };
 
@@ -76,14 +77,14 @@ export default function ReportScreen({ navigation, route }) {
     new Promise((resolve) => {
       const cat = CATEGORIES[dup.category];
       Alert.alert(
-        'Forse è già stato segnalato',
-        `${cat.label} a ${dup.distance_m} m da qui, segnalato ${timeAgo(dup.created_at)}` +
-          (dup.confirmations ? ` e confermato da ${dup.confirmations} ${dup.confirmations === 1 ? 'persona' : 'persone'}` : '') +
-          '.\n\nÈ lo stesso ostacolo? Confermarlo aiuta la community più di una nuova segnalazione.',
+        t('report.dupTitle'),
+        t('report.dupMsg', { cat: cat.label, d: dup.distance_m, ago: timeAgo(dup.created_at) }) +
+          (dup.confirmations ? t('report.dupConfirmed', { p: persons(dup.confirmations) }) : '') +
+          t('report.dupQuestion'),
         [
-          { text: 'È lo stesso: confermalo', onPress: () => resolve('confirm') },
-          { text: 'È un altro: pubblica', onPress: () => resolve('publish') },
-          { text: 'Annulla', style: 'cancel', onPress: () => resolve('cancel') },
+          { text: t('report.dupSame'), onPress: () => resolve('confirm') },
+          { text: t('report.dupOther'), onPress: () => resolve('publish') },
+          { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
         ],
         { cancelable: true, onDismiss: () => resolve('cancel') },
       );
@@ -124,7 +125,7 @@ export default function ReportScreen({ navigation, route }) {
       setFocusPoint({ lat: created.lat, lon: created.lon, zoom: 18, t: Date.now() });
       openReport(created.id);
     } catch (e) {
-      Alert.alert('Pubblicazione non riuscita', e.message);
+      Alert.alert(t('report.publishFail'), e.message);
     } finally {
       setSaving(false);
     }
@@ -135,13 +136,13 @@ export default function ReportScreen({ navigation, route }) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <FadeIn>
-            <T variant="title" accessibilityRole="header">Segnala un ostacolo</T>
+            <T variant="title" accessibilityRole="header">{t('report.title')}</T>
             <T variant="body" style={{ color: colors.textMuted, marginTop: 4 }}>
-              Bastano pochi secondi. La community lo terrà aggiornato.
+              {t('report.subtitle')}
             </T>
           </FadeIn>
 
-          <SectionHeader title="1 · Che cosa blocca il passaggio?" />
+          <SectionHeader title={t('report.s1')} />
           <View style={styles.grid}>
             {Object.entries(CATEGORIES).map(([key, c], i) => {
               const sel = category === key;
@@ -166,24 +167,24 @@ export default function ReportScreen({ navigation, route }) {
             })}
           </View>
 
-          <SectionHeader title="2 · Foto" subtitle="Facoltativa. Evita di inquadrare volti e targhe." />
+          <SectionHeader title={t('report.s2')} subtitle={t('report.s2sub')} />
           {photo ? (
             <FadeIn>
               <View>
-                <Image source={{ uri: photo.uri }} style={styles.photo} accessibilityLabel="Foto allegata" />
-                <PressableScale style={styles.photoRemove} onPress={() => setPhoto(null)} accessibilityLabel="Rimuovi foto">
+                <Image source={{ uri: photo.uri }} style={styles.photo} accessibilityLabel={t('report.photoAttached')} />
+                <PressableScale style={styles.photoRemove} onPress={() => setPhoto(null)} accessibilityLabel={t('report.removePhoto')}>
                   <Icon name="close" size={18} color="#fff" />
                 </PressableScale>
               </View>
             </FadeIn>
           ) : (
             <View style={styles.row}>
-              <Button title="Scatta" icon="camera-outline" variant="secondary" style={{ flex: 1 }} onPress={() => takePhoto(true)} />
-              <Button title="Galleria" icon="image-outline" variant="secondary" style={{ flex: 1 }} onPress={() => takePhoto(false)} />
+              <Button title={t('report.take')} icon="camera-outline" variant="secondary" style={{ flex: 1 }} onPress={() => takePhoto(true)} />
+              <Button title={t('report.gallery')} icon="image-outline" variant="secondary" style={{ flex: 1 }} onPress={() => takePhoto(false)} />
             </View>
           )}
 
-          <SectionHeader title="3 · Posizione" />
+          <SectionHeader title={t('report.s3')} />
           <View style={styles.locBox}>
             <View style={styles.locIcon}>
               <Icon name={pick ? 'map-marker-outline' : 'crosshairs-gps'} size={20} color={colors.primary} />
@@ -191,15 +192,11 @@ export default function ReportScreen({ navigation, route }) {
             <View style={{ flex: 1 }}>
               <T variant="bodyMedium" style={outside ? { color: colors.danger } : null}>
                 {outside
-                  ? 'Sei fuori dal Trentino-Alto Adige'
-                  : pick ? 'Punto scelto sulla mappa' : position ? 'La tua posizione attuale' : 'In attesa del GPS…'}
+                  ? t('report.outsideTitle')
+                  : t(pick ? 'report.picked' : position ? 'report.myPos' : 'report.waitingGps')}
               </T>
               <T variant="caption">
-                {outside
-                  ? 'Tieni premuto sulla mappa per scegliere un punto nella regione.'
-                  : pick
-                    ? 'Tocca la × per tornare alla tua posizione.'
-                    : 'Tieni premuto sulla mappa per segnalare in un altro punto.'}
+                {t(outside ? 'report.outsideHint' : pick ? 'report.pickedHint' : 'report.posHint')}
               </T>
             </View>
             {pick ? (
@@ -208,14 +205,14 @@ export default function ReportScreen({ navigation, route }) {
                 style={styles.locClear}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel="Rimuovi il punto scelto e usa la mia posizione"
+                accessibilityLabel={t('report.clearPickA11y')}
               >
                 <Icon name="close" size={18} color={colors.textMuted} />
               </PressableScale>
             ) : null}
           </View>
 
-          <SectionHeader title="4 · Quanto durerà?" />
+          <SectionHeader title={t('report.s4')} />
           <View style={styles.durations}>
             {Object.entries(DURATIONS).map(([key, d]) => {
               const sel = duration === key;
@@ -235,20 +232,20 @@ export default function ReportScreen({ navigation, route }) {
             })}
           </View>
 
-          <SectionHeader title="5 · Descrizione" subtitle="Facoltativa" />
+          <SectionHeader title={t('report.s5')} subtitle={t('common.optional')} />
           <TextInput
             value={description}
             onChangeText={setDescription}
-            placeholder="Es. auto parcheggiata davanti alla rampa"
+            placeholder={t('report.descPh')}
             placeholderTextColor={colors.textSubtle}
             maxLength={300}
             multiline
             style={styles.input}
-            accessibilityLabel="Descrizione"
+            accessibilityLabel={t('report.desc')}
           />
 
           <Button
-            title="Pubblica segnalazione"
+            title={t('report.publish')}
             icon="send-outline"
             onPress={publish}
             disabled={!category || !location || outside}

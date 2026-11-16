@@ -4,12 +4,13 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInpu
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useApp } from '../AppContext';
-import { Button, FadeIn, Icon, OptionCard, SectionHeader, T } from '../components/ui';
+import { Button, FadeIn, Icon, LanguageSwitch, OptionCard, SectionHeader, T } from '../components/ui';
 import { PROFILES } from '../constants';
+import { t } from '../i18n';
 import { colors, fonts, radius, space } from '../theme';
 
 export default function OnboardingScreen() {
-  const { register } = useApp();
+  const { register, language, updateSettings } = useApp();
   const [nickname, setNickname] = useState('');
   const [profile, setProfile] = useState('wheelchair');
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export default function OnboardingScreen() {
     try {
       await register(nickname.trim(), profile);
     } catch (e) {
-      Alert.alert('Registrazione non riuscita', e.message);
+      Alert.alert(t('onb.regFail'), e.message);
     } finally {
       setLoading(false);
     }
@@ -35,36 +36,36 @@ export default function OnboardingScreen() {
               <View style={styles.logo}>
                 <Icon name="wheelchair-accessibility" size={26} color="#fff" />
               </View>
-              <T variant="heading" style={{ fontSize: 19 }}>AccessBZ</T>
+              <T variant="heading" style={{ fontSize: 19, flex: 1 }}>AccessBZ</T>
+              <LanguageSwitch value={language} onChange={(l) => updateSettings({ language: l })} />
             </View>
           </FadeIn>
 
           <FadeIn delay={80}>
             <T variant="display" style={{ marginTop: space.xl }}>
-              La città è la stessa.{'\n'}
-              <T variant="display" style={{ color: colors.primary }}>Il percorso non lo è.</T>
+              {t('onb.tagline1')}{'\n'}
+              <T variant="display" style={{ color: colors.primary }}>{t('onb.tagline2')}</T>
             </T>
             <T variant="body" style={{ color: colors.textMuted, marginTop: space.md }}>
-              Una mappa che mostra cosa succede adesso sui marciapiedi di Bolzano: ostacoli, lavori,
-              ascensori guasti. Segnalati e confermati dalla community.
+              {t('onb.intro')}
             </T>
           </FadeIn>
 
           <FadeIn delay={160}>
-            <SectionHeader title="Come ti chiami?" />
+            <SectionHeader title={t('onb.nameQ')} />
             <TextInput
               value={nickname}
               onChangeText={setNickname}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder="Nome o soprannome"
+              placeholder={t('onb.namePh')}
               placeholderTextColor={colors.textSubtle}
               maxLength={40}
               style={[styles.input, focused && styles.inputFocused]}
-              accessibilityLabel="Nome o soprannome"
+              accessibilityLabel={t('onb.namePh')}
             />
 
-            <SectionHeader title="Come ti muovi in città?" subtitle="Vedrai solo gli ostacoli che contano per te." />
+            <SectionHeader title={t('onb.moveQ')} subtitle={t('onb.moveSub')} />
             {Object.entries(PROFILES).map(([key, p]) => (
               <OptionCard
                 key={key}
@@ -79,11 +80,10 @@ export default function OnboardingScreen() {
             <View style={styles.privacy}>
               <Icon name="shield-lock-outline" size={20} color={colors.textMuted} />
               <T variant="label" style={{ flex: 1 }}>
-                Niente email né password. I tuoi spostamenti non vengono salvati: la posizione serve solo a
-                mostrarti gli ostacoli vicini e a localizzare le tue segnalazioni.
+                {t('onb.privacy')}
               </T>
             </View>
-            <Button title="Inizia" icon="arrow-right" onPress={start} disabled={!nickname.trim()} loading={loading} />
+            <Button title={t('onb.start')} icon="arrow-right" onPress={start} disabled={!nickname.trim()} loading={loading} />
           </FadeIn>
         </ScrollView>
       </KeyboardAvoidingView>

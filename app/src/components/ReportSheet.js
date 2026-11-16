@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, View } from 'r
 import { api } from '../api';
 import { useApp } from '../AppContext';
 import { ACTIVE_STATUSES, CATEGORIES, DURATIONS } from '../constants';
+import { t } from '../i18n';
 import { colors, radius, space } from '../theme';
 import { distanceM, formatDistance, formatMinutes, timeAgo } from '../utils';
 import BottomSheet from './BottomSheet';
@@ -12,10 +13,10 @@ import PlaceMemory from './PlaceMemory';
 import { Button, FadeIn, Icon, IconBadge, StatusPill, T } from './ui';
 
 const TIMELINE = {
-  created: { icon: 'map-marker-plus-outline', text: 'Segnalato', color: colors.primary },
-  confirmed: { icon: 'check-circle-outline', text: 'Confermato ancora presente', color: '#D97706' },
-  gone: { icon: 'close-circle-outline', text: 'Indicato come non più presente', color: colors.textMuted },
-  resolved: { icon: 'check-decagram-outline', text: 'Risolto', color: colors.success },
+  created: { icon: 'map-marker-plus-outline', text: 'sheet.tlCreated', color: colors.primary },
+  confirmed: { icon: 'check-circle-outline', text: 'sheet.tlConfirmed', color: '#D97706' },
+  gone: { icon: 'close-circle-outline', text: 'sheet.tlGone', color: colors.textMuted },
+  resolved: { icon: 'check-decagram-outline', text: 'sheet.tlResolved', color: colors.success },
 };
 
 export default function ReportSheet() {
@@ -27,7 +28,7 @@ export default function ReportSheet() {
     if (openReportId == null) return;
     setReport(null);
     api.getReport(openReportId, deviceId).then(setReport).catch((e) => {
-      Alert.alert('Errore', e.message);
+      Alert.alert(t('common.error'), e.message);
       openReport(null);
     });
   }, [openReportId, deviceId]);
@@ -41,17 +42,17 @@ export default function ReportSheet() {
       setReport(await api.getReport(report.id, deviceId));
       refreshReports();
     } catch (e) {
-      Alert.alert('Errore', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setBusy(null);
     }
   };
 
   const remove = () =>
-    Alert.alert('Eliminare la segnalazione?', 'Verrà cancellata definitivamente.', [
-      { text: 'Annulla', style: 'cancel' },
+    Alert.alert(t('sheet.deleteTitle'), t('sheet.deleteMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Elimina',
+        text: t('sheet.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
@@ -59,7 +60,7 @@ export default function ReportSheet() {
             refreshReports();
             close();
           } catch (e) {
-            Alert.alert('Errore', e.message);
+            Alert.alert(t('common.error'), e.message);
           }
         },
       },
@@ -82,7 +83,7 @@ export default function ReportSheet() {
               <IconBadge name={cat.icon} color={cat.tint} size={52} />
               <View style={{ flex: 1, gap: 6 }}>
                 <T variant="title" style={{ fontSize: 21, lineHeight: 26 }} accessibilityRole="header">
-                  {report.category_label}
+                  {cat.label}
                 </T>
                 <StatusPill status={report.status} />
               </View>
@@ -94,7 +95,7 @@ export default function ReportSheet() {
               <Image
                 source={{ uri: api.photoUrl(report.id) }}
                 style={styles.photo}
-                accessibilityLabel={`Foto: ${report.category_label}`}
+                accessibilityLabel={t('sheet.photoA11y', { c: cat.label })}
               />
             </FadeIn>
           ) : null}
@@ -108,12 +109,16 @@ export default function ReportSheet() {
           ) : null}
 
           <FadeIn delay={100} style={styles.facts}>
-            <Fact icon="clock-outline" label="Segnalato" value={timeAgo(report.created_at)} />
-            <Fact icon="timer-outline" label={active ? 'Attivo da' : 'È durato'} value={formatMinutes(report.active_minutes)} />
-            <Fact icon={dur.icon} label="Durata prevista" value={dur.label} />
-            <Fact icon="account-group-outline" label="Conferme" value={String(report.confirmations)} />
+            <Fact icon="clock-outline" label={t('sheet.reported')} value={timeAgo(report.created_at)} />
+            <Fact
+              icon="timer-outline"
+              label={t(active ? 'sheet.activeFor' : 'sheet.lasted')}
+              value={formatMinutes(report.active_minutes, active)}
+            />
+            <Fact icon={dur.icon} label={t('sheet.expected')} value={dur.label} />
+            <Fact icon="account-group-outline" label={t('sheet.confirmations')} value={String(report.confirmations)} />
             {position ? (
-              <Fact icon="map-marker-distance" label="Distanza" value={formatDistance(distanceM(position, report))} />
+              <Fact icon="map-marker-distance" label={t('sheet.distance')} value={formatDistance(distanceM(position, report))} />
             ) : null}
           </FadeIn>
 
@@ -121,33 +126,33 @@ export default function ReportSheet() {
             {active ? (
               <View style={styles.question}>
                 <T variant="heading" style={{ textAlign: 'center', marginBottom: space.md }}>
-                  È ancora presente?
+                  {t('sheet.stillThere')}
                 </T>
                 <View style={styles.row}>
                   <Button
-                    title="Sì, c'è"
+                    title={t('sheet.yes')}
                     icon="check"
                     variant="primary"
                     style={styles.voteBtn}
                     loading={busy === 'yes'}
                     disabled={!!busy}
                     onPress={() => vote(true)}
-                    accessibilityLabel="Sì, l'ostacolo è ancora presente"
+                    accessibilityLabel={t('sheet.yesA11y')}
                   />
                   <Button
-                    title="Non c'è più"
+                    title={t('sheet.no')}
                     icon="close"
                     variant="secondary"
                     style={styles.voteBtn}
                     loading={busy === 'no'}
                     disabled={!!busy}
                     onPress={() => vote(false)}
-                    accessibilityLabel="No, l'ostacolo non c'è più"
+                    accessibilityLabel={t('sheet.noA11y')}
                   />
                 </View>
                 {report.my_vote != null ? (
                   <T variant="caption" style={{ textAlign: 'center', marginTop: space.sm }}>
-                    Hai risposto: {report.my_vote ? 'ancora presente' : 'non c’è più'}
+                    {t('sheet.youAnswered', { a: t(report.my_vote ? 'sheet.answerPresent' : 'sheet.answerGone') })}
                   </T>
                 ) : null}
               </View>
@@ -160,20 +165,20 @@ export default function ReportSheet() {
                 />
                 <T variant="bodyMedium" style={{ flex: 1, color: report.status === 'resolved' ? colors.success : colors.textMuted }}>
                   {report.status === 'resolved'
-                    ? `Ostacolo rimosso. È rimasto attivo per ${formatMinutes(report.active_minutes)}.`
-                    : 'Segnalazione scaduta: nessuno l’ha più confermata.'}
+                    ? t('sheet.resolvedMsg', { t: formatMinutes(report.active_minutes) })
+                    : t('sheet.expiredMsg')}
                 </T>
               </View>
             )}
           </FadeIn>
 
           <FadeIn delay={170}>
-            <T variant="overline" style={{ marginTop: space.xl, marginBottom: space.md }}>Memoria del luogo</T>
+            <T variant="overline" style={{ marginTop: space.xl, marginBottom: space.md }}>{t('sheet.placeMemory')}</T>
             <PlaceMemory place={report.place} />
           </FadeIn>
 
           <FadeIn delay={200}>
-            <T variant="overline" style={{ marginTop: space.xl, marginBottom: space.md }}>Linea del tempo</T>
+            <T variant="overline" style={{ marginTop: space.xl, marginBottom: space.md }}>{t('sheet.timeline')}</T>
             {report.timeline.map((t, i) => {
               const m = TIMELINE[t.type];
               const last = i === report.timeline.length - 1;
@@ -186,7 +191,7 @@ export default function ReportSheet() {
                     {!last ? <View style={styles.tlLine} /> : null}
                   </View>
                   <View style={{ flex: 1, paddingBottom: last ? 0 : space.md }}>
-                    <T variant="bodyMedium">{m.text}</T>
+                    <T variant="bodyMedium">{t(m.text)}</T>
                     <T variant="caption">
                       {timeAgo(t.at)}
                       {t.by ? ` · ${t.by}` : ''}
@@ -198,7 +203,7 @@ export default function ReportSheet() {
           </FadeIn>
 
           {report.is_mine ? (
-            <Button title="Elimina la mia segnalazione" icon="trash-can-outline" variant="ghost" onPress={remove} style={{ marginTop: space.md }} />
+            <Button title={t('sheet.deleteMine')} icon="trash-can-outline" variant="ghost" onPress={remove} style={{ marginTop: space.md }} />
           ) : null}
         </ScrollView>
       )}

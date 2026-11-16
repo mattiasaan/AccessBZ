@@ -9,6 +9,7 @@ import { AppState } from 'react-native';
 import { api, setReauthHandler, wakeServer } from './api';
 import { initSpeech, speak } from './speech';
 import { ALERT_RADIUS_M, CATEGORIES } from './constants';
+import { deviceLanguage, getLanguage, persons, setLanguage, t } from './i18n';
 import { distanceM, locateOnRoute, pointAlong, randomId } from './utils';
 
 const AppContext = createContext(null);
@@ -26,7 +27,10 @@ const SIM_SPEED_MPS = 4; // velocità della simulazione (un po' più veloce di u
 export function AppProvider({ children }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState(null); // { deviceId, nickname, profile }
-  const [settings, setSettings] = useState({ voice: true });
+  // language: lingua dell'app (it/de). Prima scelta: la lingua del telefono.
+  const [settings, setSettings] = useState({ voice: true, language: deviceLanguage() });
+  // La lingua attiva va impostata prima di disegnare i testi: t() la legge da i18n.js
+  setLanguage(settings.language);
   const [reports, setReports] = useState([]);
   const [reportsError, setReportsError] = useState(null);
   const [gpsPosition, setGpsPosition] = useState(null);
@@ -62,7 +66,7 @@ export function AppProvider({ children }) {
           AsyncStorage.getItem(SETTINGS_KEY),
         ]);
         if (u) setUser(JSON.parse(u));
-        if (s) setSettings({ voice: true, ...JSON.parse(s) });
+        if (s) setSettings((prev) => ({ ...prev, ...JSON.parse(s) }));
       } catch {}
       setReady(true);
     })();
@@ -210,15 +214,17 @@ export function AppProvider({ children }) {
     announced.current[nearest.report.id] = now;
     setAlert(nearest);
     if (settings.voice) {
-      const label = CATEGORIES[nearest.report.category]?.label || 'ostacolo';
+      const label = CATEGORIES[nearest.report.category]?.label || t('common.obstacle');
       const meters = Math.max(5, Math.round(nearest.distance / 5) * 5);
+      // In italiano "Tra 20 metri, lavori." (minuscolo); in tedesco i nomi restano maiuscoli
+      const midLabel = getLanguage() === 'it' ? label.toLowerCase() : label;
       let text = nearest.ahead
         ? nearest.distance < 8
-          ? `Attenzione. ${label}, adesso.`
-          : `Attenzione. Tra ${meters} metri, ${label.toLowerCase()}.`
-        : `Attenzione. ${label} a circa ${meters} metri.`;
+          ? t('voice.now', { l: label })
+          : t('voice.ahead', { m: meters, l: midLabel })
+        : t('voice.near', { l: label, m: meters });
       if (nearest.report.confirmations > 0) {
-        text += ` Confermato da ${nearest.report.confirmations} ${nearest.report.confirmations === 1 ? 'persona' : 'persone'}.`;
+        text += t('voice.confirmed', { p: persons(nearest.report.confirmations) });
       }
       speak(text);
     }
@@ -247,7 +253,7 @@ export function AppProvider({ children }) {
         if (p.done) {
           clearInterval(simTimer.current);
           simTimer.current = null;
-          if (settings.voice) speak('Sei arrivato a destinazione.');
+          if (settings.voice) speak(t('voice.arrived'));
         }
       }, 1000);
     },
@@ -265,6 +271,7 @@ export function AppProvider({ children }) {
     resetAccount,
     settings,
     updateSettings,
+    language: settings.language,
     reports,
     reportsError,
     refreshReports,

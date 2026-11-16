@@ -7,6 +7,10 @@ conferme della community, ciclo di vita temporale dell'ostacolo, memoria del luo
 percorsi A/B che evitano gli ostacoli e avvisi vocali nella direzione di marcia.
 Idea completa in [AccessBZ.md](AccessBZ.md).
 
+L'app è in **italiano e tedesco** (testi, avvisi vocali e nomi dei luoghi nella ricerca): la lingua
+si sceglie nella prima schermata o nel Profilo, e all'inizio segue quella del telefono.
+Le traduzioni sono in [app/src/i18n.js](app/src/i18n.js).
+
 | Cartella | Contenuto |
 |---|---|
 | `backend/` | API FastAPI + SQLAlchemy (SQLite in locale e su Raspberry Pi, PostgreSQL su Render) |

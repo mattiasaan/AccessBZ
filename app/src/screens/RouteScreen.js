@@ -8,11 +8,10 @@ import { useApp } from '../AppContext';
 import CityMap from '../components/CityMap';
 import { Button, Card, Divider, FadeIn, Icon, IconBadge, PressableScale, SectionHeader, T } from '../components/ui';
 import { BZ_CENTER, CATEGORIES, PROFILES } from '../constants';
+import { getLanguage, t } from '../i18n';
 import { colors, fonts, radius, shadow, space } from '../theme';
 import { formatDistance, inRegion } from '../utils';
 
-// Partenza della demo del percorso quando il GPS è fuori dal Trentino-Alto Adige
-const DEMO_START = { ...BZ_CENTER, label: 'Piazza Walther (demo)' };
 const ROUTE_COLORS = { clean: '#15803D', blocked: '#DC2626' };
 
 export default function RouteScreen({ navigation }) {
@@ -21,7 +20,10 @@ export default function RouteScreen({ navigation }) {
   // Se il GPS è fuori dal Trentino-Alto Adige si parte da Piazza Walther (Bolzano)
   const gpsInRegion = inRegion(gpsPosition);
   const [useGps, setUseGps] = useState(true);
-  const start = useGps && gpsInRegion ? { ...gpsPosition, label: 'La mia posizione' } : DEMO_START;
+  // Partenza della demo quando il GPS è fuori regione: Piazza Walther
+  const start = useGps && gpsInRegion
+    ? { ...gpsPosition, label: t('route.myPos') }
+    : { ...BZ_CENTER, label: t('route.demoStart') };
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -36,9 +38,9 @@ export default function RouteScreen({ navigation }) {
     try {
       const r = await api.geocode(query.trim(), start);
       setResults(r);
-      if (!r.length) Alert.alert('Nessun risultato', 'Prova con un altro nome o indirizzo.');
+      if (!r.length) Alert.alert(t('route.noResults'), t('route.noResultsMsg'));
     } catch (e) {
-      Alert.alert('Ricerca non riuscita', e.message);
+      Alert.alert(t('route.searchFail'), e.message);
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export default function RouteScreen({ navigation }) {
       const best = [...res.routes].sort((a, b) => a.obstacles.length - b.obstacles.length)[0];
       setSelected(best.id);
     } catch (e) {
-      Alert.alert('Percorso non disponibile', e.message);
+      Alert.alert(t('route.unavailable'), e.message);
     } finally {
       setLoading(false);
     }
@@ -89,10 +91,12 @@ export default function RouteScreen({ navigation }) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <FadeIn>
-            <T variant="title" accessibilityRole="header">Dove vuoi andare?</T>
+            <T variant="title" accessibilityRole="header">{t('route.title')}</T>
             <View style={styles.profileTag}>
               <Icon name={profile.icon} size={16} color={colors.primary} />
-              <T variant="label" style={{ color: colors.primaryDark }}>Percorso per {profile.label.toLowerCase()}</T>
+              <T variant="label" style={{ color: colors.primaryDark }}>
+                {t('route.forProfile', { p: getLanguage() === 'it' ? profile.label.toLowerCase() : profile.label })}
+              </T>
             </View>
           </FadeIn>
 
@@ -103,11 +107,11 @@ export default function RouteScreen({ navigation }) {
                   <View style={[styles.dot, { backgroundColor: colors.primary }]} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <T variant="caption">Partenza</T>
+                  <T variant="caption">{t('route.start')}</T>
                   <T variant="bodyMedium">{start.label}</T>
                 </View>
                 {gpsInRegion ? (
-                  <PressableScale onPress={() => setUseGps(!useGps)} accessibilityRole="button" accessibilityLabel="Cambia partenza">
+                  <PressableScale onPress={() => setUseGps(!useGps)} accessibilityRole="button" accessibilityLabel={t('route.changeStart')}>
                     <Icon name="swap-horizontal" size={22} color={colors.primary} />
                   </PressableScale>
                 ) : null}
@@ -126,19 +130,19 @@ export default function RouteScreen({ navigation }) {
                   }}
                   onSubmitEditing={search}
                   returnKeyType="search"
-                  placeholder="Farmacia, Via Museo, ospedale…"
+                  placeholder={t('route.destPh')}
                   placeholderTextColor={colors.textSubtle}
                   style={styles.input}
-                  accessibilityLabel="Destinazione"
+                  accessibilityLabel={t('route.dest')}
                 />
-                <PressableScale onPress={search} style={styles.searchBtn} accessibilityRole="button" accessibilityLabel="Cerca">
+                <PressableScale onPress={search} style={styles.searchBtn} accessibilityRole="button" accessibilityLabel={t('route.search')}>
                   <Icon name="magnify" size={20} color="#fff" />
                 </PressableScale>
               </View>
             </Card>
             {!gpsInRegion ? (
               <T variant="caption" style={{ marginTop: -4, marginBottom: space.sm }}>
-                Sei fuori dal Trentino-Alto Adige: per la demo si parte dal centro di Bolzano.
+                {t('route.outside')}
               </T>
             ) : null}
           </FadeIn>
@@ -165,7 +169,7 @@ export default function RouteScreen({ navigation }) {
                 <CityMap routes={mapRoutes} reports={chosen?.obstacles || []} />
               </View>
 
-              <SectionHeader title="Scegli il percorso" />
+              <SectionHeader title={t('route.choose')} />
               {routes.map((r, i) => {
                 const sel = selected === r.id;
                 const clean = r.obstacles.length === 0;
@@ -176,7 +180,11 @@ export default function RouteScreen({ navigation }) {
                     style={[styles.routeCard, sel && styles.routeSelected]}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: sel }}
-                    accessibilityLabel={`Percorso ${String.fromCharCode(65 + i)}, ${Math.round(r.duration_s / 60)} minuti, ${r.obstacles.length} ostacoli`}
+                    accessibilityLabel={t('route.a11y', {
+                      x: String.fromCharCode(65 + i),
+                      min: Math.round(r.duration_s / 60),
+                      n: r.obstacles.length,
+                    })}
                   >
                     <IconBadge
                       name={clean ? 'check-circle-outline' : 'alert-outline'}
@@ -184,13 +192,17 @@ export default function RouteScreen({ navigation }) {
                       size={44}
                     />
                     <View style={{ flex: 1 }}>
-                      <T variant="caption">Percorso {String.fromCharCode(65 + i)} · {r.label}</T>
+                      <T variant="caption">
+                        {t('route.letter', { x: String.fromCharCode(65 + i), label: t(`route.${r.id}`) })}
+                      </T>
                       <T variant="heading">
                         {Math.max(1, Math.round(r.duration_s / 60))} min
                         <T variant="body" style={{ color: colors.textMuted }}>  ·  {formatDistance(r.distance_m)}</T>
                       </T>
                       <T variant="label" style={{ color: clean ? ROUTE_COLORS.clean : ROUTE_COLORS.blocked }}>
-                        {clean ? 'Nessun ostacolo conosciuto' : `${r.obstacles.length} ostacoli sul percorso`}
+                        {clean
+                          ? t('route.noKnown')
+                          : t(r.obstacles.length === 1 ? 'map.onRouteOne' : 'map.onRouteMany', { n: r.obstacles.length })}
                       </T>
                     </View>
                     <View style={[styles.radio, sel && styles.radioOn]}>
@@ -202,18 +214,18 @@ export default function RouteScreen({ navigation }) {
               {routes.length === 1 ? (
                 <T variant="label" style={{ marginBottom: space.sm }}>
                   {routes[0].obstacles.length === 0
-                    ? 'Il percorso più veloce è già libero da ostacoli segnalati.'
-                    : 'Non esiste un’alternativa che eviti tutti gli ostacoli.'}
+                    ? t('route.fastestFree')
+                    : t('route.noAlternative')}
                 </T>
               ) : null}
 
               {chosen ? (
                 <>
-                  <SectionHeader title="Cosa troverò lungo il percorso?" />
+                  <SectionHeader title={t('route.along')} />
                   <Card>
-                    <Step icon="home-outline" color={colors.primary} text="Partenza" />
+                    <Step icon="home-outline" color={colors.primary} text={t('route.start')} />
                     {chosen.obstacles.length === 0 ? (
-                      <Step icon="check" color={ROUTE_COLORS.clean} text="Nessun ostacolo conosciuto" />
+                      <Step icon="check" color={ROUTE_COLORS.clean} text={t('route.noKnown')} />
                     ) : null}
                     {chosen.obstacles.map((o) => (
                       <Step
@@ -221,14 +233,14 @@ export default function RouteScreen({ navigation }) {
                         icon={CATEGORIES[o.category]?.icon}
                         color={CATEGORIES[o.category]?.tint}
                         text={CATEGORIES[o.category]?.label}
-                        sub={`dopo ${formatDistance(o.distance_along_m)}`}
+                        sub={t('route.after', { d: formatDistance(o.distance_along_m) })}
                       />
                     ))}
-                    <Step icon="flag-checkered" color={colors.text} text="Destinazione" last />
+                    <Step icon="flag-checkered" color={colors.text} text={t('route.dest')} last />
                   </Card>
-                  <Button title="Avvia navigazione" icon="navigation-variant" onPress={() => go(false)} />
+                  <Button title={t('route.startNav')} icon="navigation-variant" onPress={() => go(false)} />
                   <Button
-                    title="Simula il tragitto"
+                    title={t('route.simulate')}
                     icon="play"
                     variant="soft"
                     onPress={() => go(true)}

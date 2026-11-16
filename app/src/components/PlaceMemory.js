@@ -5,6 +5,7 @@ import { Animated, StyleSheet, View } from 'react-native';
 
 import { CATEGORIES } from '../constants';
 import { colors, radius, space } from '../theme';
+import { t } from '../i18n';
 import { formatMinutes } from '../utils';
 import { Icon, T } from './ui';
 
@@ -19,7 +20,7 @@ export default function PlaceMemory({ place }) {
       <View style={styles.empty}>
         <Icon name="history" size={20} color={colors.textMuted} />
         <T variant="label" style={{ flex: 1 }}>
-          Prima segnalazione in questo punto negli ultimi {place.days} giorni.
+          {t('place.first', { d: place.days })}
         </T>
       </View>
     );
@@ -42,20 +43,20 @@ export default function PlaceMemory({ place }) {
       <View style={styles.head}>
         <Icon name="history" size={20} color={colors.primary} />
         <T variant="heading" style={{ flex: 1 }}>
-          {place.count} ostacoli qui negli ultimi {place.days} giorni
+          {t('place.count', { n: place.count, d: place.days })}
         </T>
       </View>
       <T variant="caption" style={{ marginBottom: space.md }}>
-        Entro {place.radius_m} m da questo punto
+        {t('place.within', { r: place.radius_m })}
       </T>
 
       <View style={styles.stats}>
         <View style={styles.stat}>
-          <T variant="caption">Durata media</T>
+          <T variant="caption">{t('place.avg')}</T>
           <T variant="bodyMedium">{formatMinutes(place.avg_resolution_minutes)}</T>
         </View>
         <View style={styles.stat}>
-          <T variant="caption">Più frequente</T>
+          <T variant="caption">{t('place.mostFrequent')}</T>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Icon name={top.icon} size={16} color={top.tint} />
             <T variant="bodyMedium" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -66,19 +67,19 @@ export default function PlaceMemory({ place }) {
       </View>
 
       <T variant="caption" style={{ marginTop: space.md, marginBottom: space.sm }}>
-        Quando compaiono gli ostacoli
+        {t('place.when')}
       </T>
       <View
         style={styles.chart}
         accessible
-        accessibilityLabel={`Gli ostacoli compaiono soprattutto tra le ${BUCKETS[peak]} e le ${BUCKETS[peak] + 4}`}
+        accessibilityLabel={t('place.peakA11y', { a: BUCKETS[peak], b: BUCKETS[peak] + 4 })}
       >
         {counts.map((n, i) => (
           <Bar key={i} value={max ? n / max : 0} highlight={i === peak} label={`${BUCKETS[i]}`} delay={i * 50} />
         ))}
       </View>
       <T variant="label" style={{ marginTop: space.sm, color: colors.text }}>
-        Di solito tra le {BUCKETS[peak]}:00 e le {BUCKETS[peak] + 4}:00
+        {t('place.usually', { a: BUCKETS[peak], b: BUCKETS[peak] + 4 })}
       </T>
     </View>
   );

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { STATUSES } from '../constants';
+import { LANGUAGES, t } from '../i18n';
 import { colors, fonts, radius, shadow, space, type } from '../theme';
 
 export function Icon({ name, size = 22, color = colors.text, style }) {
@@ -177,7 +178,7 @@ export function Chip({ label, icon, selected, onPress, color = colors.primary })
 export function StatusPill({ status }) {
   const s = STATUSES[status] || { label: status, color: '#999', soft: '#eee' };
   return (
-    <View style={[styles.pill, { backgroundColor: s.soft }]} accessibilityLabel={`Stato: ${s.label}`}>
+    <View style={[styles.pill, { backgroundColor: s.soft }]} accessibilityLabel={t('status.a11y', { s: s.label })}>
       <View style={[styles.pillDot, { backgroundColor: s.color }]} />
       <Text style={[styles.pillText, { color: s.color }]}>{s.label}</Text>
     </View>
@@ -242,3 +243,14 @@ const styles = StyleSheet.create({
     marginBottom: space.md, ...shadow.sm,
   },
 });
+
+// Scelta della lingua: Italiano / Deutsch
+export function LanguageSwitch({ value, onChange }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={t('common.language')}>
+      {Object.entries(LANGUAGES).map(([code, name]) => (
+        <Chip key={code} label={name} selected={value === code} onPress={() => onChange(code)} />
+      ))}
+    </View>
+  );
+}

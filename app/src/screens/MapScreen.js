@@ -8,6 +8,7 @@ import { useApp } from '../AppContext';
 import CityMap from '../components/CityMap';
 import { Chip, Icon, PressableScale, T } from '../components/ui';
 import { CATEGORIES, PROFILES, STATUSES } from '../constants';
+import { t } from '../i18n';
 import { colors, fonts, radius, shadow, space } from '../theme';
 
 export default function MapScreen({ navigation }) {
@@ -61,15 +62,15 @@ export default function MapScreen({ navigation }) {
             style={styles.profileCard}
             onPress={() => navigation.navigate('Profilo')}
             accessibilityRole="button"
-            accessibilityLabel={`Profilo ${profile.label}. ${reports.length} ostacoli attivi. Tocca per cambiare profilo`}
+            accessibilityLabel={t('map.profileA11y', { p: profile.label, n: reports.length })}
           >
             <View style={styles.profileIcon}>
               <Icon name={profile.icon} size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <T variant="caption">Bolzano · {profile.label}</T>
+              <T variant="caption">{t('common.region')} · {profile.label}</T>
               <T variant="heading" style={{ fontSize: 16 }}>
-                {reports.length} {reports.length === 1 ? 'ostacolo attivo' : 'ostacoli attivi'}
+                {t(reports.length === 1 ? 'map.activeOne' : 'map.activeMany', { n: reports.length })}
               </T>
             </View>
             <Icon name="chevron-right" size={22} color={colors.textSubtle} />
@@ -78,7 +79,7 @@ export default function MapScreen({ navigation }) {
 
         {categoriesHere.length > 1 ? (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-            <Chip label="Tutti" selected={!filter} onPress={() => setFilter(null)} />
+            <Chip label={t('map.all')} selected={!filter} onPress={() => setFilter(null)} />
             {categoriesHere.map((c) => (
               <Chip
                 key={c}
@@ -115,7 +116,7 @@ export default function MapScreen({ navigation }) {
             style={styles.locate}
             onPress={() => setFocusPoint({ ...position, zoom: 17, t: Date.now() })}
             accessibilityRole="button"
-            accessibilityLabel="Centra la mappa sulla mia posizione"
+            accessibilityLabel={t('map.locateA11y')}
           >
             <Icon name="crosshairs-gps" size={22} color={colors.primary} />
           </PressableScale>
@@ -124,10 +125,10 @@ export default function MapScreen({ navigation }) {
           style={styles.fab}
           onPress={() => navigation.navigate('Segnala')}
           accessibilityRole="button"
-          accessibilityLabel="Segnala un ostacolo"
+          accessibilityLabel={t('map.reportA11y')}
         >
           <Icon name="plus" size={22} color="#fff" />
-          <T variant="heading" style={{ color: '#fff', fontSize: 16 }}>Segnala</T>
+          <T variant="heading" style={{ color: '#fff', fontSize: 16 }}>{t('map.reportBtn')}</T>
         </PressableScale>
       </View>
 
@@ -146,16 +147,16 @@ export default function MapScreen({ navigation }) {
         </View>
         <View style={{ flex: 1 }}>
           <T variant="caption" style={{ color: 'rgba(255,255,255,0.7)' }}>
-            {simulating ? 'Simulazione in corso' : 'Navigazione attiva'}
+            {t(simulating ? 'map.simRunning' : 'map.navActive')}
           </T>
           <T variant="heading" style={{ color: '#fff', fontSize: 15 }}>
             {activeRoute?.obstacles.length
-              ? `${activeRoute.obstacles.length} ostacoli sul percorso`
-              : 'Nessun ostacolo sul percorso'}
+              ? t(activeRoute.obstacles.length === 1 ? 'map.onRouteOne' : 'map.onRouteMany', { n: activeRoute.obstacles.length })
+              : t('map.noneOnRoute')}
           </T>
         </View>
-        <PressableScale onPress={endNavigation} style={styles.navEnd} accessibilityRole="button" accessibilityLabel="Termina navigazione">
-          <T variant="heading" style={{ fontSize: 14 }}>Termina</T>
+        <PressableScale onPress={endNavigation} style={styles.navEnd} accessibilityRole="button" accessibilityLabel={t('map.endA11y')}>
+          <T variant="heading" style={{ fontSize: 14 }}>{t('map.end')}</T>
         </PressableScale>
       </Animated.View>
     </View>

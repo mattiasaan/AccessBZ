@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Modal, PanResponder, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { t } from '../i18n';
 import { colors, radius } from '../theme';
 
 const H = Dimensions.get('window').height;
@@ -46,7 +47,7 @@ export default function BottomSheet({ visible, onClose, children }) {
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: backdrop }]}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Chiudi" />
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel={t('common.close')} />
       </Animated.View>
       <Animated.View style={[styles.sheet, { paddingBottom: insets.bottom + 12, transform: [{ translateY: y }] }]}>
         <View {...pan.panHandlers} style={styles.handleArea}>

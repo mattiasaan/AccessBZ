@@ -6,14 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api } from '../api';
 import { useApp } from '../AppContext';
-import { Button, Card, Divider, FadeIn, Icon, IconBadge, OptionCard, SectionHeader, T } from '../components/ui';
+import { Button, Card, Divider, FadeIn, Icon, IconBadge, LanguageSwitch, OptionCard, SectionHeader, T } from '../components/ui';
 import { CATEGORIES, PROFILES, SHOW_ACCOUNT_RESET } from '../constants';
+import { t } from '../i18n';
 import { colors, radius, shadow, space } from '../theme';
 import { speak } from '../speech';
 import { formatMinutes } from '../utils';
 
 export default function ProfileScreen() {
-  const { user, deviceId, setProfile, settings, updateSettings, resetAccount } = useApp();
+  const { user, deviceId, setProfile, settings, updateSettings, resetAccount, language } = useApp();
   const [me, setMe] = useState(null);
   const [city, setCity] = useState(null);
 
@@ -28,7 +29,7 @@ export default function ProfileScreen() {
     try {
       await setProfile(p);
     } catch (e) {
-      Alert.alert('Errore', e.message);
+      Alert.alert(t('common.error'), e.message);
     }
   };
 
@@ -36,11 +37,11 @@ export default function ProfileScreen() {
 
   const confirmReset = () =>
     Alert.alert(
-      'Reset account?',
-      'Torni alla schermata iniziale e potrai entrare come un nuovo utente. Le segnalazioni già pubblicate restano sulla mappa.',
+      t('prof.resetTitle'),
+      t('prof.resetMsg'),
       [
-        { text: 'Annulla', style: 'cancel' },
-        { text: 'Reset', style: 'destructive', onPress: () => resetAccount() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('prof.reset'), style: 'destructive', onPress: () => resetAccount() },
       ],
     );
 
@@ -62,14 +63,14 @@ export default function ProfileScreen() {
         {me ? (
           <FadeIn delay={60}>
             <View style={styles.kpis}>
-              <Kpi value={me.total} label="Segnalazioni" />
-              <Kpi value={me.resolved} label="Risolte" />
-              <Kpi value={me.confirmed_by_community} label="Conferme ricevute" />
+              <Kpi value={me.total} label={t('prof.kpiReports')} />
+              <Kpi value={me.resolved} label={t('prof.kpiResolved')} />
+              <Kpi value={me.confirmed_by_community} label={t('prof.kpiConfirms')} />
             </View>
           </FadeIn>
         ) : null}
 
-        <SectionHeader title="Profilo di mobilità" subtitle="Cambia gli ostacoli mostrati e il tipo di percorso." />
+        <SectionHeader title={t('prof.mobility')} subtitle={t('prof.mobilitySub')} />
         {Object.entries(PROFILES).map(([key, p]) => (
           <OptionCard
             key={key}
@@ -81,38 +82,41 @@ export default function ProfileScreen() {
           />
         ))}
 
-        <SectionHeader title="Assistente vocale" />
+        <SectionHeader title={t('common.language')} />
+        <LanguageSwitch value={language} onChange={(l) => updateSettings({ language: l })} />
+
+        <SectionHeader title={t('prof.voiceAssistant')} />
         <Card style={{ padding: 0 }}>
           <View style={styles.settingRow}>
             <IconBadge name="volume-high" size={38} />
             <View style={{ flex: 1 }}>
-              <T variant="bodyMedium">Avvisi vocali</T>
-              <T variant="caption">Ti avvisa quando sei vicino a un ostacolo</T>
+              <T variant="bodyMedium">{t('prof.voiceAlerts')}</T>
+              <T variant="caption">{t('prof.voiceAlertsSub')}</T>
             </View>
             <Switch
               value={settings.voice}
               onValueChange={(voice) => updateSettings({ voice })}
               trackColor={{ true: colors.primary, false: colors.border }}
               thumbColor="#fff"
-              accessibilityLabel="Avvisi vocali"
+              accessibilityLabel={t('prof.voiceAlerts')}
             />
           </View>
           <Divider style={{ marginLeft: 66 }} />
           <Button
-            title="Prova la voce"
+            title={t('prof.tryVoice')}
             icon="play-circle-outline"
             variant="ghost"
-            onPress={() => speak('Attenzione. Veicolo sul marciapiede a circa 20 metri.')}
+            onPress={() => speak(t('voice.test'))}
           />
         </Card>
 
         {me ? (
           <>
-            <SectionHeader title="Il mio impatto" />
+            <SectionHeader title={t('prof.impact')} />
             <Card style={{ padding: 0 }}>
-              <StatRow icon="account-check-outline" label="Conferme date" value={me.votes_given} />
+              <StatRow icon="account-check-outline" label={t('prof.votesGiven')} value={me.votes_given} />
               <Divider style={{ marginLeft: 66 }} />
-              <StatRow icon="timer-outline" label="Durata media dei miei ostacoli" value={formatMinutes(me.avg_resolution_minutes)} />
+              <StatRow icon="timer-outline" label={t('prof.avgMine')} value={formatMinutes(me.avg_resolution_minutes)} />
               {Object.entries(me.by_category).map(([c, n]) => (
                 <View key={c}>
                   <Divider style={{ marginLeft: 66 }} />
@@ -125,11 +129,11 @@ export default function ProfileScreen() {
 
         {city ? (
           <>
-            <SectionHeader title="Accessibilità Bolzano adesso" />
+            <SectionHeader title={t('prof.cityNow')} />
             <View style={styles.kpis}>
-              <Kpi value={city.active} label="Ostacoli attivi" tone={colors.danger} />
-              <Kpi value={city.resolved} label="Risolti" tone={colors.success} />
-              <Kpi value={formatMinutes(city.avg_resolution_minutes)} label="Durata media" small />
+              <Kpi value={city.active} label={t('prof.activeObs')} tone={colors.danger} />
+              <Kpi value={city.resolved} label={t('prof.resolvedObs')} tone={colors.success} />
+              <Kpi value={formatMinutes(city.avg_resolution_minutes)} label={t('prof.avg')} small />
             </View>
             {Object.keys(city.active_by_category).length ? (
               <Card style={{ padding: 0 }}>
@@ -144,30 +148,28 @@ export default function ProfileScreen() {
           </>
         ) : null}
 
-        <SectionHeader title="Privacy" />
+        <SectionHeader title={t('prof.privacy')} />
         <View style={styles.privacy}>
           <Icon name="shield-lock-outline" size={20} color={colors.textMuted} />
           <T variant="label" style={{ flex: 1 }}>
-            Nessuna email o password. La tua posizione non viene mai salvata né condivisa: inviamo solo la
-            posizione dell’ostacolo quando pubblichi una segnalazione. Puoi eliminare le tue segnalazioni
-            dalla loro scheda.
+            {t('prof.privacyText')}
           </T>
         </View>
         {SHOW_ACCOUNT_RESET ? (
           <>
-            <SectionHeader title="Sviluppo" subtitle="Da rimuovere prima della versione finale." />
+            <SectionHeader title={t('prof.dev')} subtitle={t('prof.devSub')} />
             <Button
-              title="Reset account"
+              title={t('prof.resetBtn')}
               icon="logout-variant"
               variant="secondary"
               onPress={confirmReset}
-              accessibilityLabel="Reset account: torna alla schermata iniziale con un nuovo utente"
+              accessibilityLabel={t('prof.resetA11y')}
             />
           </>
         ) : null}
 
         <T variant="caption" style={{ marginTop: space.lg, textAlign: 'center', color: colors.textSubtle }}>
-          Mappe © OpenStreetMap contributors · Percorsi openrouteservice.org
+          {t('prof.credits')}
         </T>
       </ScrollView>
     </SafeAreaView>

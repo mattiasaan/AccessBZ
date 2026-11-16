@@ -6,14 +6,21 @@
 // 1) "Riscaldamento": il motore vocale impiega 1–3 s a partire la prima volta. Lo prepariamo
 //    all'apertura dell'app, così il primo avviso parte subito.
 // 2) Su iOS la voce predefinita è quella "compatta". Se sul telefono è installata una voce
-//    italiana migliore (Avanzata o Premium, da Impostazioni > Accessibilità > Contenuti letti ad alta voce > Voci)
+//    migliore nella lingua dell'app (italiano o tedesco) (Avanzata o Premium, da Impostazioni > Accessibilità > Contenuti letti ad alta voce > Voci)
 //    la usiamo. Su Android teniamo la voce predefinita del sistema, che è già ottima.
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 
-const LANGUAGE = 'it-IT';
-let voiceId; // undefined = voce predefinita
+import { getLanguage } from './i18n';
+
+const LOCALES = { it: 'it-IT', de: 'de-DE' };
+const voiceIds = {}; // lingua -> voce iOS migliore (assente = voce predefinita)
 let ready = null;
+
+const current = () => {
+  const lang = getLanguage();
+  return { language: LOCALES[lang] || LOCALES.it, voice: voiceIds[lang] };
+};
 
 function rankIosVoice(v) {
   const id = (v.identifier || '').toLowerCase();
@@ -29,11 +36,13 @@ export function initSpeech() {
       // Su Android questa chiamata avvia anche il motore TextToSpeech
       const voices = await Speech.getAvailableVoicesAsync();
       if (Platform.OS === 'ios') {
-        const italian = voices.filter((v) => (v.language || '').toLowerCase().startsWith('it'));
-        italian.sort((a, b) => rankIosVoice(b) - rankIosVoice(a));
-        if (italian[0] && rankIosVoice(italian[0]) > 1) voiceId = italian[0].identifier;
+        for (const lang of Object.keys(LOCALES)) {
+          const list = voices.filter((v) => (v.language || '').toLowerCase().startsWith(lang));
+          list.sort((a, b) => rankIosVoice(b) - rankIosVoice(a));
+          if (list[0] && rankIosVoice(list[0]) > 1) voiceIds[lang] = list[0].identifier;
+        }
         // Frase muta: carica la voce in memoria
-        Speech.speak(' ', { language: LANGUAGE, voice: voiceId, volume: 0 });
+        Speech.speak(' ', { ...current(), volume: 0 });
       }
     } catch {
       // Se qualcosa va storto si usa semplicemente la voce predefinita
@@ -44,7 +53,7 @@ export function initSpeech() {
 
 export function speak(text, { rate = 0.95 } = {}) {
   Speech.stop();
-  Speech.speak(text, { language: LANGUAGE, voice: voiceId, rate });
+  Speech.speak(text, { ...current(), rate });
 }
 
 export function stopSpeaking() {

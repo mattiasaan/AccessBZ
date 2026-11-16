@@ -3,6 +3,7 @@ import { createElement, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { CATEGORIES, STATUSES } from '../constants';
+import { t } from '../i18n';
 import { HTML } from './mapHtml';
 
 const SHIM =
@@ -50,7 +51,7 @@ export default function CityMap({
       {createElement('iframe', {
         ref: frame,
         srcDoc: DOC,
-        title: 'Mappa',
+        title: t('map.webTitle'),
         style: { border: 0, width: '100%', height: '100%' },
       })}
     </View>

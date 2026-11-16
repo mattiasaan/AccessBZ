@@ -5,6 +5,8 @@
 // che risponde e lo ricorda (rete locale quando sei a casa, Tailscale quando sei fuori).
 import Constants from 'expo-constants';
 
+import { getLanguage, serverMessage, t } from './i18n';
+
 // In sviluppo (Expo Go) il backend gira sullo stesso PC del server Expo:
 // prendiamo il suo IP (es. "192.168.1.5:8081") e usiamo la porta 8000.
 function devApiUrl() {
@@ -84,9 +86,9 @@ async function request(path, opts = {}) {
   }
   if (!res) {
     if (lastError?.name === 'AbortError') {
-      throw new Error('Il server non risponde. Riprova tra qualche secondo.');
+      throw new Error(t('net.timeout'));
     }
-    throw new Error(`Server non raggiungibile (${API_URLS.join(' / ')}). Controlla la connessione.`);
+    throw new Error(t('net.unreachable', { u: API_URLS.join(' / ') }));
   }
   if (res.status === 401 && deviceId && !retried && path !== '/users' && reauthHandler) {
     await reauthHandler(deviceId);
@@ -96,7 +98,9 @@ async function request(path, opts = {}) {
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const detail = data?.detail;
-    throw new Error(typeof detail === 'string' ? detail : `Errore ${res.status} da ${getApiUrl()}${path}`);
+    throw new Error(
+      typeof detail === 'string' ? serverMessage(detail) : t('net.httpError', { s: res.status, u: `${getApiUrl()}${path}` }),
+    );
   }
   return data;
 }
@@ -126,7 +130,8 @@ export const api = {
     request(`/reports/${id}/vote`, { method: 'POST', body: { present }, deviceId }),
   deleteReport: (id, deviceId) => request(`/reports/${id}`, { method: 'DELETE', deviceId }),
   // near: punto di partenza, per preferire i risultati vicini
-  geocode: (q, near) => request('/geocode', { params: { q, lat: near?.lat, lon: near?.lon } }),
+  geocode: (q, near) =>
+    request('/geocode', { params: { q, lat: near?.lat, lon: near?.lon, lang: getLanguage() } }),
   route: (start, end, profile) =>
     request('/route', {
       method: 'POST',

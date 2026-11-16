@@ -126,7 +126,7 @@ def ors_route(start, end, ors_profile, avoid_points=None):
     }
 
 
-def geocode(text, focus=None):
+def geocode(text, focus=None, lang="it"):
     """Cerca un indirizzo o un luogo in Trentino-Alto Adige, preferendo quelli vicini a focus."""
     _require_key()
     focus = focus or BZ_CENTER
@@ -136,6 +136,7 @@ def geocode(text, focus=None):
             "api_key": ORS_API_KEY,
             "text": text,
             "size": 6,
+            "lang": lang,
             "focus.point.lat": focus[0],
             "focus.point.lon": focus[1],
             "boundary.rect.min_lon": REGION_RECT["min_lon"],

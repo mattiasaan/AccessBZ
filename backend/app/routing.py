@@ -16,6 +16,8 @@ BZ_CENTER = (46.4983, 11.3548)
 # Rettangolo che contiene tutto il Trentino-Alto Adige (area di servizio e ricerca indirizzi)
 REGION_RECT = {"min_lat": 45.67, "max_lat": 47.10, "min_lon": 10.38, "max_lon": 12.48}
 
+MAX_ROUTE_KM = 30           # un percorso a piedi o in carrozzina più lungo di così non ha senso
+GEOCODE_RESULTS = 6
 AVOID_HALF_SIDE_M = 12      # mezzo lato del quadrato intorno all'ostacolo
 ON_ROUTE_THRESHOLD_M = 20   # un ostacolo è "sul percorso" se dista meno di così
 
@@ -130,29 +132,35 @@ def ors_route(start, end, ors_profile, avoid_points=None, avoid_features=None):
     }
 
 
+def in_region(lat, lon):
+    r = REGION_RECT
+    return r["min_lat"] <= lat <= r["max_lat"] and r["min_lon"] <= lon <= r["max_lon"]
+
+
 def geocode(text, focus=None, lang="it"):
-    """Cerca un indirizzo o un luogo in Trentino-Alto Adige, preferendo quelli vicini a focus."""
+    """Cerca un indirizzo o un luogo entro MAX_ROUTE_KM dalla partenza (focus), nella regione.
+    Più lontano non servirebbe: il percorso non si potrebbe calcolare."""
     _require_key()
     focus = focus or BZ_CENTER
     resp = httpx.get(
         f"{ORS_URL}/geocode/search",
+        # La chiave va nell'header, non nell'URL: gli URL possono finire nei log
+        headers={"Authorization": ORS_API_KEY},
         params={
-            "api_key": ORS_API_KEY,
             "text": text,
-            "size": 6,
+            "size": 15,
             "lang": lang,
             "focus.point.lat": focus[0],
             "focus.point.lon": focus[1],
-            "boundary.rect.min_lon": REGION_RECT["min_lon"],
-            "boundary.rect.min_lat": REGION_RECT["min_lat"],
-            "boundary.rect.max_lon": REGION_RECT["max_lon"],
-            "boundary.rect.max_lat": REGION_RECT["max_lat"],
+            "boundary.circle.lat": focus[0],
+            "boundary.circle.lon": focus[1],
+            "boundary.circle.radius": MAX_ROUTE_KM,
         },
         timeout=15,
     )
     if resp.status_code != 200:
         raise RoutingError(f"Ricerca indirizzo non riuscita ({resp.status_code})")
-    return [
+    results = [
         {
             "label": f["properties"].get("label", ""),
             "lat": f["geometry"]["coordinates"][1],
@@ -160,3 +168,12 @@ def geocode(text, focus=None, lang="it"):
         }
         for f in resp.json().get("features", [])
     ]
+    # Vicino al confine il cerchio esce dalla regione: teniamo solo i luoghi raggiungibili.
+    # Poi i più vicini alla partenza per primi: ORS ordina per somiglianza del nome, e da Bolzano
+    # "Farmacia" proporrebbe prima Laives o Cles invece della farmacia sotto casa.
+    results = [
+        r for r in results
+        if in_region(r["lat"], r["lon"]) and haversine_m(focus, (r["lat"], r["lon"])) <= MAX_ROUTE_KM * 1000
+    ]
+    results.sort(key=lambda r: haversine_m(focus, (r["lat"], r["lon"])))
+    return results[:GEOCODE_RESULTS]

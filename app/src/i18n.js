@@ -120,6 +120,7 @@ const it = {
   'report.removePhoto': 'Rimuovi foto',
   'report.s3': '3 · Posizione',
   'report.outsideTitle': 'Sei fuori dal Trentino-Alto Adige',
+  'report.outsidePickTitle': 'Il punto scelto è fuori dal Trentino-Alto Adige',
   'report.outsideHint': 'Tieni premuto sulla mappa per scegliere un punto nella regione.',
   'report.picked': 'Punto scelto sulla mappa',
   'report.myPos': 'La tua posizione attuale',
@@ -171,6 +172,7 @@ const it = {
   'sheet.expiredMsg': 'Segnalazione scaduta: nessuno l’ha più confermata.',
   'sheet.placeMemory': 'Memoria del luogo',
   'sheet.timeline': 'Linea del tempo',
+  'sheet.byYou': 'tu',
   'sheet.deleteMine': 'Elimina la mia segnalazione',
 
   // Memoria del luogo
@@ -370,6 +372,7 @@ const de = {
   'report.removePhoto': 'Foto entfernen',
   'report.s3': '3 · Standort',
   'report.outsideTitle': 'Du bist außerhalb von Trentino-Südtirol',
+  'report.outsidePickTitle': 'Der gewählte Punkt liegt außerhalb von Trentino-Südtirol',
   'report.outsideHint': 'Halte auf der Karte gedrückt, um einen Punkt in der Region zu wählen.',
   'report.picked': 'Auf der Karte gewählter Punkt',
   'report.myPos': 'Dein aktueller Standort',
@@ -420,6 +423,7 @@ const de = {
   'sheet.expiredMsg': 'Meldung abgelaufen: Niemand hat sie mehr bestätigt.',
   'sheet.placeMemory': 'Gedächtnis des Ortes',
   'sheet.timeline': 'Zeitverlauf',
+  'sheet.byYou': 'du',
   'sheet.deleteMine': 'Meine Meldung löschen',
 
   'place.first': 'Erste Meldung an dieser Stelle in den letzten {d} Tagen.',

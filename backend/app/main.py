@@ -76,7 +76,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Area di servizio: il rettangolo che contiene tutto il Trentino-Alto Adige.
 # Segnalazioni e percorsi fuori da qui vengono rifiutati. (I dati di esempio coprono solo Bolzano.)
 SERVICE_AREA = routing.REGION_RECT
-MAX_ROUTE_KM = 30  # un percorso a piedi o in carrozzina più lungo di così non ha senso
+MAX_ROUTE_KM = routing.MAX_ROUTE_KM  # anche la ricerca indirizzi resta entro questa distanza
 MAX_ACTIVE_WINDOW = max(EXPIRY_WITHOUT_CONFIRMATION.values())
 REPORTS_PER_DEVICE_PER_DAY = 60
 MAX_AVOID_POLYGONS = 40
@@ -185,7 +185,8 @@ def report_to_dict(r: Report, now=None, viewer_id: int | None = None) -> dict:
         "confirmations": count_confirmations(r),
         "removals": sum(1 for v in r.votes if not v.present),
         "has_photo": r.has_photo,
-        "author": r.author.nickname if r.author else None,
+        # Privacy: il soprannome dell'autore NON viene inviato. Soprannome + luogo + ora
+        # permetterebbero di ricostruire dove è passata una persona.
         "is_mine": viewer_id is not None and r.created_by == viewer_id,
         "my_vote": my_vote,
         "is_demo": r.is_demo,
@@ -193,7 +194,7 @@ def report_to_dict(r: Report, now=None, viewer_id: int | None = None) -> dict:
 
 
 def _with_relations(stmt):
-    return stmt.options(selectinload(Report.votes), selectinload(Report.author))
+    return stmt.options(selectinload(Report.votes))
 
 
 def load_active_candidates(db: Session, now=None):
@@ -334,21 +335,18 @@ def get_report(report_id: int, device_id: str | None = Depends(device_id_optiona
         raise HTTPException(404, "Segnalazione non trovata")
     viewer = find_user(db, device_id)
     d = report_to_dict(r, viewer_id=viewer.id if viewer else None)
-    # Linea del tempo: creazione + ogni voto + risoluzione (un'unica query per i nomi)
-    voter_ids = {v.user_id for v in r.votes}
-    names = (
-        dict(db.execute(select(User.id, User.nickname).where(User.id.in_(voter_ids))).all())
-        if voter_ids else {}
-    )
-    timeline = [{"type": "created", "at": iso(r.created_at), "by": r.author.nickname}]
+    # Linea del tempo: creazione + ogni voto + risoluzione.
+    # Privacy: niente nomi, solo "mine" per le azioni di chi sta guardando.
+    me = viewer.id if viewer else None
+    timeline = [{"type": "created", "at": iso(r.created_at), "mine": me is not None and r.created_by == me}]
     for v in r.votes:
         timeline.append({
             "type": "confirmed" if v.present else "gone",
             "at": iso(v.created_at),
-            "by": names.get(v.user_id, "?"),
+            "mine": me is not None and v.user_id == me,
         })
     if r.resolved_at:
-        timeline.append({"type": "resolved", "at": iso(r.resolved_at), "by": None})
+        timeline.append({"type": "resolved", "at": iso(r.resolved_at), "mine": False})
     d["timeline"] = timeline
     d["place"] = place_history(db, r)
     return d

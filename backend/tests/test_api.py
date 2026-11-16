@@ -81,6 +81,9 @@ def test_full_lifecycle():
     detail = client.get(f"/reports/{rid}").json()
     assert detail["timeline"][0]["type"] == "created"
     assert detail["timeline"][-1]["type"] == "resolved"
+    # Privacy: nessun soprannome nelle risposte pubbliche
+    assert "author" not in detail and all("by" not in ev for ev in detail["timeline"])
+    assert client.get(f"/reports/{rid}", headers=h("aaaa")).json()["timeline"][0]["mine"] is True
 
     ids = [x["id"] for x in client.get("/reports", params={"scope": "all", "profile": "elderly"}).json()]
     assert rid in ids
@@ -276,3 +279,30 @@ def test_elderly_route_avoids_steps(monkeypatch):
     r = client.post("/route", json={"start": [46.4983, 11.3548], "end": [46.5, 11.356], "profile": "elderly"})
     assert r.status_code == 200
     assert calls[0] == ("foot-walking", ["steps"])
+
+
+def test_geocode_nearest_first_and_inside_region(monkeypatch):
+    def feature(label, lat, lon):
+        return {"properties": {"label": label}, "geometry": {"coordinates": [lon, lat]}}
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {"features": [
+                feature("Cles", 46.3634, 11.0336),        # lontano
+                feature("Bolzano", 46.4990, 11.3550),     # vicinissimo
+                feature("Bassano", 45.7660, 11.7340),     # fuori regione
+            ]}
+
+    sent = {}
+
+    def fake_get(url, headers=None, params=None, timeout=None):
+        sent.update(headers=headers, params=params)
+        return FakeResp()
+
+    monkeypatch.setattr(routing, "ORS_API_KEY", "chiave")
+    monkeypatch.setattr(routing.httpx, "get", fake_get)
+    labels = [r["label"] for r in routing.geocode("Farmacia", (46.4983, 11.3548))]
+    assert labels == ["Bolzano", "Cles"]
+    assert "api_key" not in sent["params"] and sent["headers"]["Authorization"] == "chiave"

@@ -147,7 +147,7 @@ La logica è in [backend/app/lifecycle.py](backend/app/lifecycle.py): nessuna AI
 ## Sicurezza
 
 Rate limiting per IP e per dispositivo, limite di 2 MB letto prima di caricare la richiesta,
-foto verificate e ricodificate senza EXIF/GPS, ID del dispositivo solo nell'header `X-Device-Id`,
+foto verificate e ricodificate senza EXIF/GPS, nessun soprannome nelle risposte pubbliche (luogo + ora + nome permetterebbero di seguire una persona), ID del dispositivo solo nell'header `X-Device-Id`,
 testi ripuliti, area di servizio limitata al Trentino-Alto Adige (i dati di esempio coprono Bolzano e dintorni), header di sicurezza, CORS chiuso in produzione,
 `/docs` disattivato in produzione. Dettagli in [backend/app/security.py](backend/app/security.py).
 

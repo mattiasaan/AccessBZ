@@ -192,7 +192,7 @@ export default function ReportScreen({ navigation, route }) {
             <View style={{ flex: 1 }}>
               <T variant="bodyMedium" style={outside ? { color: colors.danger } : null}>
                 {outside
-                  ? t('report.outsideTitle')
+                  ? t(pick ? 'report.outsidePickTitle' : 'report.outsideTitle')
                   : t(pick ? 'report.picked' : position ? 'report.myPos' : 'report.waitingGps')}
               </T>
               <T variant="caption">

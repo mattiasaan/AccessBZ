@@ -194,7 +194,7 @@ export default function ReportSheet() {
                     <T variant="bodyMedium">{t(m.text)}</T>
                     <T variant="caption">
                       {timeAgo(ev.at)}
-                      {ev.by ? ` · ${ev.by}` : ''}
+                      {ev.mine ? ` · ${t('sheet.byYou')}` : ''}
                     </T>
                   </View>
                 </View>

@@ -7,7 +7,8 @@ services:
     plan: free
     region: frankfurt
     rootDir: backend
-    buildCommand: pip install -r requirements.txt "psycopg[binary]>=3.2.3,<4"
+    # --retries/--timeout: se il download da PyPI è lento o si interrompe, pip riprova invece di fallire
+    buildCommand: pip install --retries 10 --timeout 120 --progress-bar off -r requirements.txt "psycopg[binary]>=3.2.3,<4"
     # Il popolamento gira in background: rigenera i dati di esempio solo se hanno più di 12 ore
     # (le segnalazioni degli utenti veri non vengono toccate) e non rallenta l'avvio del server.
     # Parte dopo 10 s: al primo avvio il server crea le tabelle da solo, così i due processi

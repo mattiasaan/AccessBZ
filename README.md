@@ -144,7 +144,7 @@ La logica è in [backend/app/lifecycle.py](backend/app/lifecycle.py): nessuna AI
 
 Rate limiting per IP e per dispositivo, limite di 2 MB letto prima di caricare la richiesta,
 foto verificate e ricodificate senza EXIF/GPS, ID del dispositivo solo nell'header `X-Device-Id`,
-testi ripuliti, area di servizio limitata a Bolzano, header di sicurezza, CORS chiuso in produzione,
+testi ripuliti, area di servizio limitata al Trentino-Alto Adige (i dati di esempio coprono Bolzano e dintorni), header di sicurezza, CORS chiuso in produzione,
 `/docs` disattivato in produzione. Dettagli in [backend/app/security.py](backend/app/security.py).
 
 ## Dati e servizi usati

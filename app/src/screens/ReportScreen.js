@@ -10,7 +10,7 @@ import { useApp } from '../AppContext';
 import { Button, FadeIn, Icon, PressableScale, SectionHeader, T } from '../components/ui';
 import { CATEGORIES, DURATIONS } from '../constants';
 import { colors, fonts, radius, shadow, softTint, space } from '../theme';
-import { timeAgo } from '../utils';
+import { inRegion, timeAgo } from '../utils';
 
 // Durata suggerita in base alla categoria (l'utente può cambiarla)
 const DEFAULT_DURATION = {
@@ -29,6 +29,8 @@ export default function ReportScreen({ navigation, route }) {
   const [saving, setSaving] = useState(false);
 
   const location = pick || position;
+  // Fuori dal Trentino-Alto Adige il server rifiuta la segnalazione: lo diciamo subito
+  const outside = !!location && !inRegion(location);
 
   useEffect(() => {
     if (category) setDuration(DEFAULT_DURATION[category]);
@@ -187,13 +189,17 @@ export default function ReportScreen({ navigation, route }) {
               <Icon name={pick ? 'map-marker-outline' : 'crosshairs-gps'} size={20} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <T variant="bodyMedium">
-                {pick ? 'Punto scelto sulla mappa' : position ? 'La tua posizione attuale' : 'In attesa del GPS…'}
+              <T variant="bodyMedium" style={outside ? { color: colors.danger } : null}>
+                {outside
+                  ? 'Sei fuori dal Trentino-Alto Adige'
+                  : pick ? 'Punto scelto sulla mappa' : position ? 'La tua posizione attuale' : 'In attesa del GPS…'}
               </T>
               <T variant="caption">
-                {pick
-                  ? 'Tocca la × per tornare alla tua posizione.'
-                  : 'Tieni premuto sulla mappa per segnalare in un altro punto.'}
+                {outside
+                  ? 'Tieni premuto sulla mappa per scegliere un punto nella regione.'
+                  : pick
+                    ? 'Tocca la × per tornare alla tua posizione.'
+                    : 'Tieni premuto sulla mappa per segnalare in un altro punto.'}
               </T>
             </View>
             {pick ? (
@@ -245,7 +251,7 @@ export default function ReportScreen({ navigation, route }) {
             title="Pubblica segnalazione"
             icon="send-outline"
             onPress={publish}
-            disabled={!category || !location}
+            disabled={!category || !location || outside}
             loading={saving}
             style={{ marginTop: space.xl }}
           />

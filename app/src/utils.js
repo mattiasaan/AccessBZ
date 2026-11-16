@@ -1,6 +1,14 @@
 // Funzioni di supporto: distanze, tempi, testi.
 import * as Crypto from 'expo-crypto';
 
+import { REGION_RECT } from './constants';
+
+// Il punto è nell'area servita (Trentino-Alto Adige)?
+export function inRegion(p) {
+  return !!p && p.lat >= REGION_RECT.minLat && p.lat <= REGION_RECT.maxLat
+    && p.lon >= REGION_RECT.minLon && p.lon <= REGION_RECT.maxLon;
+}
+
 export function distanceM(a, b) {
   const R = 6371000;
   const toRad = (d) => (d * Math.PI) / 180;

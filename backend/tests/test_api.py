@@ -171,6 +171,18 @@ def test_outside_service_area_rejected():
     assert r.status_code == 422
 
 
+def test_whole_region_is_served():
+    make_user("region")
+    # Trento e Brunico sono dentro l'area di servizio
+    r = client.post("/reports", json={"category": "works", "lat": 46.0679, "lon": 11.1211}, headers=h("region"))
+    assert r.status_code == 201
+    r = client.post("/reports", json={"category": "works", "lat": 46.7962, "lon": 11.9387}, headers=h("region"))
+    assert r.status_code == 201
+    # Bolzano -> Trento a piedi: troppo lontano
+    r = client.post("/route", json={"start": [46.4983, 11.3548], "end": [46.0679, 11.1211], "profile": "pedestrian"})
+    assert r.status_code == 422
+
+
 def test_rate_limit_registration():
     codes = [
         client.post("/users", json={"nickname": "spam"}, headers=h(f"spam{i}")).status_code

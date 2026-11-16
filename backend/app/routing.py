@@ -11,9 +11,10 @@ import httpx
 ORS_URL = "https://api.openrouteservice.org"
 ORS_API_KEY = os.getenv("ORS_API_KEY", "")
 
-# Area di Bolzano (per la ricerca degli indirizzi)
+# Bolzano: punto di riferimento della ricerca indirizzi se non si conosce la partenza
 BZ_CENTER = (46.4983, 11.3548)
-BZ_RECT = {"min_lon": 11.26, "min_lat": 46.44, "max_lon": 11.42, "max_lat": 46.54}
+# Rettangolo che contiene tutto il Trentino-Alto Adige (area di servizio e ricerca indirizzi)
+REGION_RECT = {"min_lat": 45.67, "max_lat": 47.10, "min_lon": 10.38, "max_lon": 12.48}
 
 AVOID_HALF_SIDE_M = 12      # mezzo lato del quadrato intorno all'ostacolo
 ON_ROUTE_THRESHOLD_M = 20   # un ostacolo è "sul percorso" se dista meno di così
@@ -125,21 +126,22 @@ def ors_route(start, end, ors_profile, avoid_points=None):
     }
 
 
-def geocode(text):
-    """Cerca un indirizzo o un luogo a Bolzano."""
+def geocode(text, focus=None):
+    """Cerca un indirizzo o un luogo in Trentino-Alto Adige, preferendo quelli vicini a focus."""
     _require_key()
+    focus = focus or BZ_CENTER
     resp = httpx.get(
         f"{ORS_URL}/geocode/search",
         params={
             "api_key": ORS_API_KEY,
             "text": text,
             "size": 6,
-            "focus.point.lat": BZ_CENTER[0],
-            "focus.point.lon": BZ_CENTER[1],
-            "boundary.rect.min_lon": BZ_RECT["min_lon"],
-            "boundary.rect.min_lat": BZ_RECT["min_lat"],
-            "boundary.rect.max_lon": BZ_RECT["max_lon"],
-            "boundary.rect.max_lat": BZ_RECT["max_lat"],
+            "focus.point.lat": focus[0],
+            "focus.point.lon": focus[1],
+            "boundary.rect.min_lon": REGION_RECT["min_lon"],
+            "boundary.rect.min_lat": REGION_RECT["min_lat"],
+            "boundary.rect.max_lon": REGION_RECT["max_lon"],
+            "boundary.rect.max_lat": REGION_RECT["max_lat"],
         },
         timeout=15,
     )

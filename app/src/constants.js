@@ -44,8 +44,11 @@ export const STATUSES = {
 
 export const ACTIVE_STATUSES = ['new', 'confirmed', 'persistent'];
 
-// Centro di Bolzano (Piazza Walther): punto di partenza se il GPS è lontano da Bolzano
+// Centro di Bolzano (Piazza Walther): centro della mappa e partenza della demo se il GPS è fuori regione
 export const BZ_CENTER = { lat: 46.4983, lon: 11.3548 };
+
+// Area servita: rettangolo che contiene tutto il Trentino-Alto Adige (uguale a backend/app/routing.py)
+export const REGION_RECT = { minLat: 45.67, maxLat: 47.1, minLon: 10.38, maxLon: 12.48 };
 
 // SOLO SVILUPPO: pulsante "Reset account" nel profilo. Metti false per la versione finale.
 export const SHOW_ACCOUNT_RESET = true;

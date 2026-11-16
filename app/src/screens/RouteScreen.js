@@ -9,19 +9,19 @@ import CityMap from '../components/CityMap';
 import { Button, Card, Divider, FadeIn, Icon, IconBadge, PressableScale, SectionHeader, T } from '../components/ui';
 import { BZ_CENTER, CATEGORIES, PROFILES } from '../constants';
 import { colors, fonts, radius, shadow, space } from '../theme';
-import { distanceM, formatDistance } from '../utils';
+import { formatDistance, inRegion } from '../utils';
 
-// Partenza della demo del percorso quando il GPS è lontano da Bolzano
+// Partenza della demo del percorso quando il GPS è fuori dal Trentino-Alto Adige
 const DEMO_START = { ...BZ_CENTER, label: 'Piazza Walther (demo)' };
 const ROUTE_COLORS = { clean: '#15803D', blocked: '#DC2626' };
 
 export default function RouteScreen({ navigation }) {
   const { user, gpsPosition, setActiveRoute, startSimulation, stopSimulation } = useApp();
 
-  // Se il GPS è lontano da Bolzano (es. prove a casa) si parte da Piazza Walther
-  const gpsInBolzano = gpsPosition && distanceM(gpsPosition, BZ_CENTER) < 8000;
+  // Se il GPS è fuori dal Trentino-Alto Adige si parte da Piazza Walther (Bolzano)
+  const gpsInRegion = inRegion(gpsPosition);
   const [useGps, setUseGps] = useState(true);
-  const start = useGps && gpsInBolzano ? { ...gpsPosition, label: 'La mia posizione' } : DEMO_START;
+  const start = useGps && gpsInRegion ? { ...gpsPosition, label: 'La mia posizione' } : DEMO_START;
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -34,7 +34,7 @@ export default function RouteScreen({ navigation }) {
     if (query.trim().length < 2) return;
     setLoading(true);
     try {
-      const r = await api.geocode(query.trim());
+      const r = await api.geocode(query.trim(), start);
       setResults(r);
       if (!r.length) Alert.alert('Nessun risultato', 'Prova con un altro nome o indirizzo.');
     } catch (e) {
@@ -106,7 +106,7 @@ export default function RouteScreen({ navigation }) {
                   <T variant="caption">Partenza</T>
                   <T variant="bodyMedium">{start.label}</T>
                 </View>
-                {gpsInBolzano ? (
+                {gpsInRegion ? (
                   <PressableScale onPress={() => setUseGps(!useGps)} accessibilityRole="button" accessibilityLabel="Cambia partenza">
                     <Icon name="swap-horizontal" size={22} color={colors.primary} />
                   </PressableScale>
@@ -136,9 +136,9 @@ export default function RouteScreen({ navigation }) {
                 </PressableScale>
               </View>
             </Card>
-            {!gpsInBolzano ? (
+            {!gpsInRegion ? (
               <T variant="caption" style={{ marginTop: -4, marginBottom: space.sm }}>
-                Sei lontano da Bolzano: per la demo si parte dal centro.
+                Sei fuori dal Trentino-Alto Adige: per la demo si parte dal centro di Bolzano.
               </T>
             ) : null}
           </FadeIn>

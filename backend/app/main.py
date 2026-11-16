@@ -68,8 +68,10 @@ app.add_middleware(RateLimitMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Area di servizio (Bolzano e dintorni): segnalazioni e percorsi fuori da qui vengono rifiutati
-SERVICE_AREA = {"min_lat": 46.38, "max_lat": 46.60, "min_lon": 11.18, "max_lon": 11.50}
+# Area di servizio: il rettangolo che contiene tutto il Trentino-Alto Adige.
+# Segnalazioni e percorsi fuori da qui vengono rifiutati. (I dati di esempio coprono solo Bolzano.)
+SERVICE_AREA = routing.REGION_RECT
+MAX_ROUTE_KM = 30  # un percorso a piedi o in carrozzina più lungo di così non ha senso
 MAX_ACTIVE_WINDOW = max(EXPIRY_WITHOUT_CONFIRMATION.values())
 REPORTS_PER_DEVICE_PER_DAY = 30
 MAX_AVOID_POLYGONS = 40
@@ -83,7 +85,7 @@ def in_service_area(lat: float, lon: float) -> bool:
 
 def require_area(lat: float, lon: float):
     if not in_service_area(lat, lon):
-        raise HTTPException(422, "Posizione fuori dall'area servita (Bolzano)")
+        raise HTTPException(422, "Posizione fuori dall'area servita (Trentino-Alto Adige)")
 
 
 # ---------------------------------------------------------------- schemi
@@ -419,13 +421,19 @@ def delete_report(report_id: int, device_id: str = Depends(device_id_required), 
 # ---------------------------------------------------------------- percorsi
 
 @app.get("/geocode")
-def geocode(q: str = Query(min_length=2, max_length=100)):
+def geocode(
+    q: str = Query(min_length=2, max_length=100),
+    lat: float | None = Query(default=None, ge=-90, le=90),
+    lon: float | None = Query(default=None, ge=-180, le=180),
+):
     q = clean_text(q)
     if len(q) < 2:
         raise HTTPException(422, "Ricerca troppo corta")
+    # Risultati vicini al punto di partenza, se è nella regione; altrimenti vicini a Bolzano
+    focus = (lat, lon) if lat is not None and lon is not None and in_service_area(lat, lon) else None
     spend_ors_budget()
     try:
-        return routing.geocode(q)
+        return routing.geocode(q, focus)
     except routing.RoutingError as e:
         log.warning("geocode: %s", e)
         raise HTTPException(503, "Servizio di ricerca non disponibile")
@@ -440,6 +448,8 @@ def route(data: RouteIn, db: Session = Depends(get_db)):
         raise HTTPException(400, "Profilo non valido")
     require_area(*data.start)
     require_area(*data.end)
+    if routing.haversine_m(data.start, data.end) > MAX_ROUTE_KM * 1000:
+        raise HTTPException(422, f"Destinazione troppo lontana (massimo {MAX_ROUTE_KM} km)")
     ors_profile = PROFILES[data.profile]["ors"]
     now = utcnow()
     active = [

@@ -125,7 +125,8 @@ export const api = {
   vote: (id, deviceId, present) =>
     request(`/reports/${id}/vote`, { method: 'POST', body: { present }, deviceId }),
   deleteReport: (id, deviceId) => request(`/reports/${id}`, { method: 'DELETE', deviceId }),
-  geocode: (q) => request('/geocode', { params: { q } }),
+  // near: punto di partenza, per preferire i risultati vicini
+  geocode: (q, near) => request('/geocode', { params: { q, lat: near?.lat, lon: near?.lon } }),
   route: (start, end, profile) =>
     request('/route', {
       method: 'POST',

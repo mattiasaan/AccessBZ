@@ -17,6 +17,9 @@ Python 3.12.7 (quello di Render), test superati, avvio in modalità produzione p
    {"app":"AccessBZ","ok":true,"routing":true}
    ```
    Se `routing` è `false`, la chiave ORS manca o è sbagliata.
+   Facoltativo: se in una demo molte persone usano l'app dalla stessa rete Wi-Fi e compare
+   "Troppe richieste", aggiungi nel pannello **Environment** la variabile `RATE_LIMIT_SCALE=2`
+   (raddoppia i limiti per IP).
 5. Aspetta circa 30 secondi: il popolamento parte 10 s dopo il server e crea le segnalazioni di
    esempio. Controlla che la mappa nell'app le mostri.
 

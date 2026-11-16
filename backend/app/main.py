@@ -78,7 +78,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 SERVICE_AREA = routing.REGION_RECT
 MAX_ROUTE_KM = 30  # un percorso a piedi o in carrozzina più lungo di così non ha senso
 MAX_ACTIVE_WINDOW = max(EXPIRY_WITHOUT_CONFIRMATION.values())
-REPORTS_PER_DEVICE_PER_DAY = 30
+REPORTS_PER_DEVICE_PER_DAY = 60
 MAX_AVOID_POLYGONS = 40
 MAX_ACTIVE_RESULTS = 1500
 

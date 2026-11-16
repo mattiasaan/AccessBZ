@@ -13,7 +13,7 @@ from PIL import Image  # noqa: E402
 
 from app import lifecycle, routing  # noqa: E402
 from app.main import app  # noqa: E402
-from app.security import limiter  # noqa: E402
+from app.security import RATE_RULES, limiter  # noqa: E402
 
 client = TestClient(app)
 
@@ -183,20 +183,25 @@ def test_whole_region_is_served():
     assert r.status_code == 422
 
 
+LIMITS = {name: lim for _, _, name, lim, _ in RATE_RULES}
+
+
 def test_rate_limit_registration():
+    n = LIMITS["register"]
     codes = [
         client.post("/users", json={"nickname": "spam"}, headers=h(f"spam{i}")).status_code
-        for i in range(12)
+        for i in range(n + 1)
     ]
-    assert codes[:10] == [200] * 10 and codes[10] == 429
+    assert codes[:n] == [200] * n and codes[n] == 429
     r = client.post("/users", json={"nickname": "spam"}, headers=h("spam99"))
     assert r.status_code == 429 and int(r.headers["retry-after"]) > 0
 
 
 def test_rate_limit_report_creation():
     make_user("flood")
-    codes = [new_report("flood", category="other", lat=46.49 + i * 0.001).status_code for i in range(9)]
-    assert codes[:8] == [201] * 8 and codes[8] == 429
+    n = LIMITS["create"]
+    codes = [new_report("flood", category="other", lat=46.49 + i * 0.001).status_code for i in range(n + 1)]
+    assert codes[:n] == [201] * n and codes[n] == 429
 
 
 def test_security_headers_and_no_docs_leak():

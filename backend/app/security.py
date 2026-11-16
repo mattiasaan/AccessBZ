@@ -143,16 +143,26 @@ class SlidingWindowLimiter:
 
 limiter = SlidingWindowLimiter()
 
+# I limiti sono per indirizzo IP: tutti i telefoni sulla stessa rete Wi-Fi (scuola, giuria, demo)
+# condividono lo stesso IP, quindi i limiti sono larghi. Servono a fermare gli abusi, non l'uso normale.
+# RATE_LIMIT_SCALE (variabile d'ambiente) li moltiplica: es. 2 = il doppio, 0.5 = la metà.
+RATE_LIMIT_SCALE = max(0.1, float(os.getenv("RATE_LIMIT_SCALE", "1")))
+
+
+def _scaled(n: int) -> int:
+    return max(1, round(n * RATE_LIMIT_SCALE))
+
+
 # (metodo, regex del percorso, nome, richieste, finestra in secondi)
 RATE_RULES = [
-    ("POST", r"^/users$", "register", 10, 3600),
-    ("POST", r"^/reports$", "create", 8, 600),
-    ("POST", r"^/reports/\d+/vote$", "vote", 40, 600),
-    ("DELETE", r"^/reports/\d+$", "delete", 20, 600),
-    ("POST", r"^/route$", "route", 20, 600),
-    ("GET", r"^/geocode$", "geocode", 30, 600),
+    ("POST", r"^/users$", "register", _scaled(30), 3600),
+    ("POST", r"^/reports$", "create", _scaled(30), 600),
+    ("POST", r"^/reports/\d+/vote$", "vote", _scaled(120), 600),
+    ("DELETE", r"^/reports/\d+$", "delete", _scaled(60), 600),
+    ("POST", r"^/route$", "route", _scaled(40), 600),
+    ("GET", r"^/geocode$", "geocode", _scaled(80), 600),
 ]
-GLOBAL_RULE = ("all", 120, 60)  # qualsiasi richiesta: 120 al minuto per IP
+GLOBAL_RULE = ("all", _scaled(300), 60)  # qualsiasi richiesta: 300 al minuto per IP
 # Tetto giornaliero per TUTTO il server sulle chiamate a OpenRouteService (piano gratuito: 2000/giorno)
 ORS_DAILY_BUDGET = int(os.getenv("ORS_DAILY_BUDGET", "1500"))
 
